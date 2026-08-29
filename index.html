@@ -1108,7 +1108,18 @@ async function saveGlobalSiteSettings(){
 }
 saveSiteSettings.addEventListener("click",saveGlobalSiteSettings);
 
-function openAdmin(){adminModal.classList.add("open");adminModal.setAttribute("aria-hidden","false");if(accessToken){loginView.hidden=true;panelView.hidden=false;refreshAdminList();}else{loginView.hidden=false;panelView.hidden=true;}}
+async function openAdmin(){
+  adminModal.classList.add("open");
+  adminModal.setAttribute("aria-hidden","false");
+  if(accessToken){
+    loginView.hidden=true;
+    panelView.hidden=false;
+    await refreshAdminList();
+  }else{
+    loginView.hidden=false;
+    panelView.hidden=true;
+  }
+}
 adminOpen.addEventListener("click",openAdmin);
 
 // Add a clearly separated general-site settings control to the admin room.
@@ -1129,23 +1140,59 @@ document.getElementById("adminLogin").addEventListener("click",async()=>{
     accessToken=d.access_token; sessionStorage.setItem("aanti_admin_token",accessToken); loginView.hidden=true;panelView.hidden=false;refreshAdminList();
   }catch(e){loginError.textContent=e.message;}
 });
-document.getElementById("adminLogout").addEventListener("click",()=>{accessToken="";sessionStorage.removeItem("aanti_admin_token");loginView.hidden=false;panelView.hidden=true});
+document.getElementById("adminLogout").addEventListener("click",async()=>{
+  try{
+    if(accessToken){
+      await fetch(SUPABASE_URL+"/auth/v1/logout",{
+        method:"POST",
+        headers:apiHeaders()
+      });
+    }
+  }catch(e){ console.warn("logout",e); }
+  accessToken="";
+  sessionStorage.removeItem("aanti_admin_token");
+  loginView.hidden=false;
+  panelView.hidden=true;
+  siteSettingsEditor.hidden=true;
+  adminModal.classList.remove("open");
+  adminModal.setAttribute("aria-hidden","true");
+  adminEmail.value="";
+  adminPassword.value="";
+});
 
 document.getElementById("cancelEdit").addEventListener("click",resetProductForm);
 function resetProductForm(){editId.value="";productName.value="";productColor.value="";productDesc.value="";productPrice.value="";productImages.value="";currentImages.innerHTML="";saveProduct.textContent="إضافة المنتج";productError.textContent="";}
 function showCurrentImages(paths){currentImages.innerHTML="";(paths||[]).forEach(p=>{const img=document.createElement("img");img.src=imageUrl(p);currentImages.appendChild(img)});}
 async function refreshAdminList(){
+  adminList.innerHTML='<div class="admin-muted" style="padding:20px;text-align:center">جاري تحميل المنتجات...</div>';
   try{
-    const r=await fetch(TABLE_URL+"?select=*&order=created_at.desc",{headers:apiHeaders()});
-    if(!r.ok) throw new Error(await r.text());
-    adminRows=await r.json();
+    if(!accessToken) throw new Error("انتهت جلسة الإدارة. سجّل الدخول من جديد.");
+
+    const r=await fetch(TABLE_URL+"?select=*&order=created_at.desc",{
+      headers:{
+        "apikey":SUPABASE_KEY,
+        "Authorization":"Bearer "+accessToken,
+        "Content-Type":"application/json"
+      }
+    });
+
+    const raw=await r.text();
+    let rows=[];
+    try{ rows=raw?JSON.parse(raw):[]; }catch(_){}
+
+    if(!r.ok){
+      throw new Error("تعذر تحميل المنتجات من Supabase: "+(rows?.message||rows?.hint||raw||r.status));
+    }
+    if(!Array.isArray(rows)) throw new Error("استجابة Supabase غير صحيحة.");
+
+    adminRows=rows;
     adminList.innerHTML="";
 
     const settingsRow=adminRows.find(row=>row.name===SITE_SETTINGS_MARKER);
     const productRows=adminRows.filter(row=>row.name!==SITE_SETTINGS_MARKER);
+
     document.getElementById("adminCount").textContent=productRows.length+" منتج";
 
-    // Fixed top item: site title + description, treated visually like a product.
     const siteRow=document.createElement("div");
     siteRow.className="admin-site-row";
     const currentTitle=(settingsRow?.color||DEFAULT_SITE_TITLE).trim()||DEFAULT_SITE_TITLE;
@@ -1157,17 +1204,23 @@ async function refreshAdminList(){
       siteTitle.value=currentTitle;
       siteDescription.value=currentDescription;
       siteSettingsError.textContent="";
-      siteSettingsError.style.color="";
       siteSettingsEditor.hidden=false;
       siteSettingsEditor.scrollIntoView({behavior:"smooth",block:"center"});
       siteTitle.focus();
     };
     adminList.appendChild(siteRow);
 
+    if(!productRows.length){
+      adminList.insertAdjacentHTML("beforeend",
+        '<div class="admin-muted" style="padding:24px;text-align:center">لا توجد منتجات محفوظة في جدول Supabase حاليًا.</div>');
+      return;
+    }
+
     productRows.forEach(row=>{
       const item=document.createElement("div");
       item.className="admin-item";
-      const first=(row.image_paths||[])[0];
+      const paths=Array.isArray(row.image_paths)?row.image_paths:[];
+      const first=paths[0] || row.image_url || "";
       const imageHtml=first
         ? '<img src="'+imageUrl(first)+'" alt="">'
         : '<div class="admin-thumb-empty"></div>';
@@ -1182,7 +1235,13 @@ async function refreshAdminList(){
       adminList.appendChild(item);
     });
   }catch(e){
-    adminList.innerHTML='<div class="admin-error">'+escapeHtml(e.message)+'</div>';
+    console.error("refreshAdminList",e);
+    adminList.innerHTML=
+      '<div class="admin-error" style="padding:18px;line-height:1.8">'+
+      '<strong>لم يتم تحميل المنتجات.</strong><br>'+escapeHtml(e.message)+
+      '<br><button type="button" class="admin-secondary" id="retryAdminProducts" style="margin-top:10px">إعادة المحاولة</button></div>';
+    const retry=document.getElementById("retryAdminProducts");
+    if(retry) retry.onclick=refreshAdminList;
   }
 }
 function startEdit(row){editId.value=row.id;productName.value=row.name||"";productColor.value=row.color||"";productDesc.value=row.description||"";productPrice.value=row.price||"";productImages.value="";showCurrentImages(row.image_paths);saveProduct.textContent="حفظ التعديل";productError.textContent="";productForm.scrollIntoView({behavior:"smooth"});}
@@ -1306,159 +1365,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&productModal.classL
 </script>
 
 
-<script id="admin-auth-repair">
-(function(){
-  const SUPABASE_URL = "https://ucpvoanwomkaaztekygj.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_JBHH47vAeQh8GzDgPSCHvA_IbjySGIQ";
 
-  function start(){
-    if (!window.supabase || !window.supabase.createClient) {
-      console.error("Supabase library did not load.");
-      return;
-    }
-
-    // Reuse an existing client if the page created one; otherwise create it.
-    let client = window.__anothaSupabase;
-    if (!client) {
-      client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      window.__anothaSupabase = client;
-      window.supabaseClient = client;
-    }
-
-    const adminOpen =
-      document.getElementById("adminOpen") ||
-      document.querySelector('[data-admin-open]') ||
-      document.querySelector('.admin-open');
-
-    const modal =
-      document.getElementById("adminModal") ||
-      document.querySelector('.admin-modal');
-
-    const loginView = document.getElementById("adminLoginView");
-    const panelView = document.getElementById("adminPanelView");
-    const email = document.getElementById("adminEmail");
-    const password = document.getElementById("adminPassword");
-    const login = document.getElementById("adminLogin");
-    const error = document.getElementById("adminLoginError");
-    const logout = document.getElementById("adminLogout");
-
-    function showError(msg){
-      if(error) error.textContent = msg;
-      console.error(msg);
-    }
-
-    function openAdmin(){
-      if(!modal) {
-        showError("لم يتم العثور على نافذة الإدارة في الصفحة.");
-        return;
-      }
-      modal.hidden = false;
-      modal.style.display = "flex";
-      modal.classList.add("open");
-      if(error) error.textContent = "";
-    }
-
-    function closeAdmin(){
-      if(modal){
-        modal.classList.remove("open");
-        modal.style.display = "";
-        modal.hidden = true;
-      }
-    }
-
-    async function refreshAuth(){
-      const {data, error: e} = await client.auth.getSession();
-      if(e){ showError(e.message); return; }
-      const session = data && data.session;
-
-      if(session){
-        if(loginView) loginView.hidden = true;
-        if(panelView) panelView.hidden = false;
-      }else{
-        if(loginView) loginView.hidden = false;
-        if(panelView) panelView.hidden = true;
-      }
-    }
-
-    async function doLogin(){
-      if(!email || !password){
-        showError("حقول البريد الإلكتروني وكلمة المرور غير موجودة.");
-        return;
-      }
-
-      const em = email.value.trim();
-      const pw = password.value;
-
-      if(!em || !pw){
-        showError("أدخل البريد الإلكتروني وكلمة المرور.");
-        return;
-      }
-
-      if(login) {
-        login.disabled = true;
-        login.textContent = "جارٍ الدخول...";
-      }
-      showError("");
-
-      const {data, error: e} = await client.auth.signInWithPassword({
-        email: em,
-        password: pw
-      });
-
-      if(e){
-        showError("فشل تسجيل الدخول: " + e.message);
-      }else if(data && data.session){
-        await refreshAuth();
-      }else{
-        showError("لم يتم إنشاء جلسة دخول. تأكد من حساب Supabase.");
-      }
-
-      if(login){
-        login.disabled = false;
-        login.textContent = "دخول";
-      }
-    }
-
-    if(adminOpen && !adminOpen.dataset.authRepair){
-      adminOpen.dataset.authRepair = "1";
-      adminOpen.addEventListener("click", function(e){
-        e.preventDefault();
-        openAdmin();
-        refreshAuth();
-      }, true);
-    }
-
-    if(login && !login.dataset.authRepair){
-      login.dataset.authRepair = "1";
-      login.addEventListener("click", function(e){
-        e.preventDefault();
-        doLogin();
-      }, true);
-    }
-
-    if(logout && !logout.dataset.authRepair){
-      logout.dataset.authRepair = "1";
-      logout.addEventListener("click", async function(e){
-        e.preventDefault();
-        await client.auth.signOut();
-        await refreshAuth();
-      }, true);
-    }
-
-    client.auth.onAuthStateChange(function(){
-      refreshAuth();
-    });
-
-    refreshAuth();
-  }
-
-  if(document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded", start);
-  }else{
-    start();
-  }
-})();
-</script>
 
 </body>
 </html>
