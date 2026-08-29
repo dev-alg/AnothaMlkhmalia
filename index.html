@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>أنوثة مخملية</title>
@@ -1302,6 +1303,161 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&productModal.classList.contains("open"))closeProductDetails()});
+</script>
+
+
+<script id="admin-auth-repair">
+(function(){
+  const SUPABASE_URL = "https://ucpvoanwomkaaztekygj.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_JBHH47vAeQh8GzDgPSCHvA_IbjySGIQ";
+
+  function start(){
+    if (!window.supabase || !window.supabase.createClient) {
+      console.error("Supabase library did not load.");
+      return;
+    }
+
+    // Reuse an existing client if the page created one; otherwise create it.
+    let client = window.__anothaSupabase;
+    if (!client) {
+      client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      window.__anothaSupabase = client;
+      window.supabaseClient = client;
+    }
+
+    const adminOpen =
+      document.getElementById("adminOpen") ||
+      document.querySelector('[data-admin-open]') ||
+      document.querySelector('.admin-open');
+
+    const modal =
+      document.getElementById("adminModal") ||
+      document.querySelector('.admin-modal');
+
+    const loginView = document.getElementById("adminLoginView");
+    const panelView = document.getElementById("adminPanelView");
+    const email = document.getElementById("adminEmail");
+    const password = document.getElementById("adminPassword");
+    const login = document.getElementById("adminLogin");
+    const error = document.getElementById("adminLoginError");
+    const logout = document.getElementById("adminLogout");
+
+    function showError(msg){
+      if(error) error.textContent = msg;
+      console.error(msg);
+    }
+
+    function openAdmin(){
+      if(!modal) {
+        showError("لم يتم العثور على نافذة الإدارة في الصفحة.");
+        return;
+      }
+      modal.hidden = false;
+      modal.style.display = "flex";
+      modal.classList.add("open");
+      if(error) error.textContent = "";
+    }
+
+    function closeAdmin(){
+      if(modal){
+        modal.classList.remove("open");
+        modal.style.display = "";
+        modal.hidden = true;
+      }
+    }
+
+    async function refreshAuth(){
+      const {data, error: e} = await client.auth.getSession();
+      if(e){ showError(e.message); return; }
+      const session = data && data.session;
+
+      if(session){
+        if(loginView) loginView.hidden = true;
+        if(panelView) panelView.hidden = false;
+      }else{
+        if(loginView) loginView.hidden = false;
+        if(panelView) panelView.hidden = true;
+      }
+    }
+
+    async function doLogin(){
+      if(!email || !password){
+        showError("حقول البريد الإلكتروني وكلمة المرور غير موجودة.");
+        return;
+      }
+
+      const em = email.value.trim();
+      const pw = password.value;
+
+      if(!em || !pw){
+        showError("أدخل البريد الإلكتروني وكلمة المرور.");
+        return;
+      }
+
+      if(login) {
+        login.disabled = true;
+        login.textContent = "جارٍ الدخول...";
+      }
+      showError("");
+
+      const {data, error: e} = await client.auth.signInWithPassword({
+        email: em,
+        password: pw
+      });
+
+      if(e){
+        showError("فشل تسجيل الدخول: " + e.message);
+      }else if(data && data.session){
+        await refreshAuth();
+      }else{
+        showError("لم يتم إنشاء جلسة دخول. تأكد من حساب Supabase.");
+      }
+
+      if(login){
+        login.disabled = false;
+        login.textContent = "دخول";
+      }
+    }
+
+    if(adminOpen && !adminOpen.dataset.authRepair){
+      adminOpen.dataset.authRepair = "1";
+      adminOpen.addEventListener("click", function(e){
+        e.preventDefault();
+        openAdmin();
+        refreshAuth();
+      }, true);
+    }
+
+    if(login && !login.dataset.authRepair){
+      login.dataset.authRepair = "1";
+      login.addEventListener("click", function(e){
+        e.preventDefault();
+        doLogin();
+      }, true);
+    }
+
+    if(logout && !logout.dataset.authRepair){
+      logout.dataset.authRepair = "1";
+      logout.addEventListener("click", async function(e){
+        e.preventDefault();
+        await client.auth.signOut();
+        await refreshAuth();
+      }, true);
+    }
+
+    client.auth.onAuthStateChange(function(){
+      refreshAuth();
+    });
+
+    refreshAuth();
+  }
+
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", start);
+  }else{
+    start();
+  }
+})();
 </script>
 
 </body>
