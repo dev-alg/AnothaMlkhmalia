@@ -1123,6 +1123,12 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
 .world-express-office small{display:block;margin-top:6px;color:#9B777B;font-size:.72rem;line-height:1.6}
 .world-express-office.no-offices{background:#fff8f9}
 </style>
+
+<style id="remove-hero-tagline-only">
+/* حذف العبارة أسفل الشعار فقط */
+.hero #siteHeroTagline,
+.hero .hero-tagline { display:none !important; }
+</style>
 </head>
 <body>
 
@@ -1354,15 +1360,25 @@ function apiHeaders(token=accessToken){
 }
 function imageUrl(path){ return /^https?:\/\//.test(path) ? path : SUPABASE_URL + "/storage/v1/object/public/" + BUCKET + "/" + path; }
 function normalizeProduct(p){
-  const paths=Array.isArray(p.image_paths)&&p.image_paths.length ? p.image_paths : (p.image_url ? [p.image_url] : []);
-  return {id:p.id,name:p.name,color:p.color||"",desc:p.description||"",price:(Number(p.price)||0)+" دج",images:paths.map(imageUrl)};
+  const paths=Array.isArray(p.image_paths)&&p.image_paths.length ? p.image_paths :
+    (p.image_url ? [p.image_url] : []);
+  return {
+    id:p.id,
+    name:p.name||"منتج",
+    color:p.color||"",
+    desc:p.description||"",
+    price:(Number(p.price)||0)+" دج",
+    images:paths.map(imageUrl)
+  };
 }
 async function loadProducts(){
   try{
     const r=await fetch(TABLE_URL+"?select=*&active=eq.true&order=created_at.desc",{headers:apiHeaders("")});
     if(!r.ok) throw new Error(await r.text());
     const rows=await r.json();
-    // Keep the local product catalogue requested for this version.
+    if(Array.isArray(rows) && rows.length){
+      PRODUCTS=rows.filter(x=>x && x.name!==SITE_SETTINGS_MARKER).map(normalizeProduct);
+    }
   }catch(e){ console.warn("Supabase products unavailable; using local products",e); }
   render();
 }
@@ -1543,6 +1559,15 @@ async function saveGlobalSiteSettings(){
 }
 saveSiteSettings.addEventListener("click",saveGlobalSiteSettings);
 
+const adminOpen = document.getElementById("adminOpen");
+const adminModal = document.getElementById("adminModal");
+const adminX = document.getElementById("adminX");
+const loginView = document.getElementById("adminLoginView");
+const panelView = document.getElementById("adminPanelView");
+const loginError = document.getElementById("adminLoginError");
+const adminEmail = document.getElementById("adminEmail");
+const adminPassword = document.getElementById("adminPassword");
+
 async function openAdmin(){
   adminModal.classList.add("open");
   adminModal.setAttribute("aria-hidden","false");
@@ -1679,11 +1704,107 @@ async function refreshAdminList(){
     if(retry) retry.onclick=refreshAdminList;
   }
 }
-function startEdit(row){editId.value=row.id;productName.value=row.name||"";productColor.value=row.color||"";productDesc.value=row.description||"";productPrice.value=row.price||"";productImages.value="";showCurrentImages(row.image_paths);saveProduct.textContent="حفظ التعديل";productError.textContent="";productForm.scrollIntoView({behavior:"smooth"});}
+function startEdit(row){
+  editId.value=String(row.id||"");
+  productName.value=row.name||"";
+  productColor.value=row.color||"";
+  productDesc.value=row.description||"";
+  productPrice.value=row.price??"";
+  productImages.value="";
+  showCurrentImages(row.image_paths);
+  saveProduct.textContent="حفظ التعديل";
+  productError.textContent="";
+  productForm.scrollIntoView({behavior:"smooth"});
+}
 async function uploadImages(files){const paths=[];for(const file of files){const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"jpg");const path=(crypto.randomUUID ? crypto.randomUUID() : (Date.now()+"-"+Math.random().toString(36).slice(2)))+"."+ext;const r=await fetch(SUPABASE_URL+"/storage/v1/object/"+BUCKET+"/"+path,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+accessToken,"Content-Type":file.type||"application/octet-stream","x-upsert":"false"},body:file});if(!r.ok)throw new Error(await r.text());paths.push(path);}return paths;}
 async function removeImages(paths){for(const path of (paths||[])){await fetch(SUPABASE_URL+"/storage/v1/object/"+BUCKET,{method:"DELETE",headers:apiHeaders(),body:JSON.stringify({prefixes:[path]})});}}
-productForm.addEventListener("submit",async e=>{e.preventDefault();productError.textContent="";saveProduct.disabled=true;saveProduct.textContent="جاري الحفظ...";try{const id=editId.value;const existing=adminRows.find(x=>x.id===id);let paths=Array.isArray(existing?.image_paths)?existing.image_paths:((existing?.image_url)?[existing.image_url]:[]);const files=[...productImages.files];if(files.length){const newPaths=await uploadImages(files);paths= id ? newPaths : newPaths;if(id&&Array.isArray(existing?.image_paths)&&existing.image_paths.length) await removeImages(existing.image_paths);}if(!id&&!paths.length)throw new Error("أضف صورة واحدة على الأقل للمنتج.");const body={name:productName.value.trim(),color:productColor.value.trim(),description:productDesc.value.trim(),price:Number(productPrice.value),image_paths:paths,active:true};let r;if(id){r=await fetch(TABLE_URL+"?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{...apiHeaders(),"Prefer":"return=minimal"},body:JSON.stringify(body)});}else{r=await fetch(TABLE_URL,{method:"POST",headers:{...apiHeaders(),"Prefer":"return=minimal"},body:JSON.stringify(body)});}if(!r.ok)throw new Error(await r.text());resetProductForm();await refreshAdminList();await loadSiteSettings();
-loadProducts();}catch(err){productError.textContent=err.message;}finally{saveProduct.disabled=false;saveProduct.textContent=editId.value?"حفظ التعديل":"إضافة المنتج";}});
+productForm.addEventListener("submit",async e=>{
+  e.preventDefault();
+  productError.textContent="";
+  saveProduct.disabled=true;
+
+  const id=String(editId.value||"").trim();
+  const oldText=id?"حفظ التعديل":"إضافة المنتج";
+  saveProduct.textContent=id?"جاري حفظ التعديل...":"جاري إضافة المنتج...";
+
+  try{
+    if(!accessToken) throw new Error("جلسة الإدارة منتهية. سجّل الدخول من جديد.");
+
+    const existing=id ? adminRows.find(x=>String(x.id)===id) : null;
+    if(id && !existing) throw new Error("المنتج غير موجود في قائمة Supabase الحالية. اضغط إعادة المحاولة.");
+
+    let paths=Array.isArray(existing?.image_paths) ? [...existing.image_paths] :
+      (existing?.image_url ? [existing.image_url] : []);
+
+    const files=[...productImages.files];
+    if(files.length){
+      paths=await uploadImages(files);
+    }
+
+    if(!id && !paths.length){
+      throw new Error("أضف صورة واحدة على الأقل للمنتج.");
+    }
+
+    const price=Number(productPrice.value);
+    if(!productName.value.trim()) throw new Error("أدخل اسم المنتج.");
+    if(!Number.isFinite(price) || price<0) throw new Error("أدخل سعرًا صحيحًا.");
+
+    const body={
+      name:productName.value.trim(),
+      color:productColor.value.trim(),
+      description:productDesc.value.trim(),
+      price:price,
+      image_paths:paths,
+      active:true
+    };
+
+    const url=id
+      ? TABLE_URL+"?id=eq."+encodeURIComponent(id)
+      : TABLE_URL;
+
+    const r=await fetch(url,{
+      method:id?"PATCH":"POST",
+      headers:{...apiHeaders(),"Prefer":"return=representation"},
+      body:JSON.stringify(body)
+    });
+
+    const text=await r.text();
+    let data=null;
+    try{data=text?JSON.parse(text):null}catch(_){}
+
+    if(!r.ok){
+      const msg=data?.message||data?.hint||data?.details||text||("HTTP "+r.status);
+      throw new Error("Supabase رفض العملية: "+msg);
+    }
+
+    if(!Array.isArray(data) || !data.length){
+      throw new Error("تم إرسال الطلب لكن Supabase لم يُرجع المنتج. تحقق من RLS وسياسات INSERT/UPDATE.");
+    }
+
+    // Delete old images only after the database update succeeded.
+    if(id && files.length && Array.isArray(existing?.image_paths) && existing.image_paths.length){
+      try{ await removeImages(existing.image_paths); }catch(imgErr){ console.warn("old image cleanup",imgErr); }
+    }
+
+    resetProductForm();
+    await refreshAdminList();
+    await loadSiteSettings();
+    await loadProducts();
+
+    productError.style.color="#15803d";
+    productError.textContent=id?"تم تعديل المنتج بنجاح ✓":"تمت إضافة المنتج بنجاح ✓";
+    setTimeout(()=>{productError.textContent="";productError.style.color="";},2500);
+
+  }catch(err){
+    console.error("product save error",err);
+    productError.style.color="";
+    productError.textContent=err?.message||"حدث خطأ أثناء حفظ المنتج.";
+  }finally{
+    saveProduct.disabled=false;
+    saveProduct.textContent=oldText;
+  }
+});
+
 async function deleteProduct(row){if(!confirm("هل تريد حذف هذا المنتج نهائيًا؟"))return;try{const r=await fetch(TABLE_URL+"?id=eq."+encodeURIComponent(row.id),{method:"DELETE",headers:apiHeaders()});if(!r.ok)throw new Error(await r.text());await removeImages(row.image_paths);await refreshAdminList();await loadProducts();}catch(e){alert("تعذر الحذف: "+e.message)}}
 
 loadSiteSettings();
