@@ -1424,7 +1424,9 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
 
           <section class="admin-view" data-admin-view-panel="settings">
             <div class="admin-dashboard-title"><div><h2>إعدادات الموقع</h2><p>تعديل العنوان والوصف والرابط والنصوص.</p></div></div>
-            <div id="siteSettingsEditor" hidden class="admin-form admin-site-settings">
+            <div class="admin-setup-note" style="margin:0 0 14px;padding:12px 14px;border-radius:14px;background:#fff0f4;border:1px solid rgba(143,76,88,.16);color:#6d3943;font-size:13px;line-height:1.7">
+      نظام الإدارة مربوط بـ Supabase: المنتجات، الصور، الطلبات وإعدادات الموقع. إذا كانت قاعدة البيانات جديدة أو حُذفت سياساتها، شغّل ملف <b>supabase_full_store_setup.sql</b> مرة واحدة في Supabase SQL Editor.
+    </div><div id="siteSettingsEditor" hidden class="admin-form admin-site-settings">
 <h3>إعدادات الواجهة</h3>
 <label>عنوان الموقع</label><input id="siteTitle" type="text">
 <label>وصف الموقع</label><textarea id="siteDescription"></textarea>
@@ -1744,6 +1746,15 @@ document.getElementById("adminLogout").addEventListener("click",async()=>{
 document.getElementById("cancelEdit").addEventListener("click",resetProductForm);
 function resetProductForm(){editId.value="";productName.value="";productColor.value="";productDesc.value="";productPrice.value="";productImages.value="";currentImages.innerHTML="";saveProduct.textContent="إضافة المنتج";productError.textContent="";}
 function showCurrentImages(paths){currentImages.innerHTML="";(paths||[]).forEach(p=>{const img=document.createElement("img");img.src=imageUrl(p);currentImages.appendChild(img)});}
+function escapeHtml(value){
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
 async function refreshAdminList(){
   adminList.innerHTML='<div class="admin-muted" style="padding:20px;text-align:center">جاري تحميل المنتجات...</div>';
   try{
@@ -1800,7 +1811,7 @@ async function refreshAdminList(){
     productRows.forEach(row=>{
       const item=document.createElement("div");
       item.className="admin-item";
-      const paths=Array.isArray(row.image_paths)?row.image_paths:[];
+      const paths=Array.isArray(row.image_paths)?row.image_paths:(row.image_paths?[String(row.image_paths)]:[]);
       const first=paths[0] || row.image_url || "";
       const imageHtml=first
         ? '<img src="'+imageUrl(first)+'" alt="">'
@@ -1835,7 +1846,7 @@ function startEdit(row){
   showCurrentImages(row.image_paths);
   saveProduct.textContent="حفظ التعديل";
   productError.textContent="";
-  productForm.scrollIntoView({behavior:"smooth"});
+  productForm.scrollIntoView({behavior:"smooth",block:"start"});
 }
 async function uploadImages(files){const paths=[];for(const file of files){const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"jpg");const path=(crypto.randomUUID ? crypto.randomUUID() : (Date.now()+"-"+Math.random().toString(36).slice(2)))+"."+ext;const r=await fetch(SUPABASE_URL+"/storage/v1/object/"+BUCKET+"/"+path,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+accessToken,"Content-Type":file.type||"application/octet-stream","x-upsert":"false"},body:file});if(!r.ok)throw new Error(await r.text());paths.push(path);}return paths;}
 async function removeImages(paths){for(const path of (paths||[])){await fetch(SUPABASE_URL+"/storage/v1/object/"+BUCKET,{method:"DELETE",headers:apiHeaders(),body:JSON.stringify({prefixes:[path]})});}}
@@ -1926,7 +1937,29 @@ productForm.addEventListener("submit",async e=>{
   }
 });
 
-async function deleteProduct(row){if(!confirm("هل تريد حذف هذا المنتج نهائيًا؟"))return;try{const r=await fetch(TABLE_URL+"?id=eq."+encodeURIComponent(row.id),{method:"DELETE",headers:apiHeaders()});if(!r.ok)throw new Error(await r.text());await removeImages(row.image_paths);await refreshAdminList();await loadProducts();}catch(e){alert("تعذر الحذف: "+e.message)}}
+async function deleteProduct(row){
+  if(!confirm("هل تريد حذف هذا المنتج نهائيًا؟")) return;
+  try{
+    if(!accessToken) throw new Error("جلسة الإدارة منتهية. سجّل الدخول من جديد.");
+    const r=await fetch(TABLE_URL+"?id=eq."+encodeURIComponent(row.id),{
+      method:"DELETE",
+      headers:{...apiHeaders(),"Prefer":"return=representation"}
+    });
+    const text=await r.text();
+    if(!r.ok) throw new Error(text||("HTTP "+r.status));
+    let deleted=null;
+    try{deleted=text?JSON.parse(text):null}catch(_){}
+    if(Array.isArray(deleted) && deleted.length===0){
+      throw new Error("لم يتم حذف المنتج. تحقق من RLS وسياسة DELETE في Supabase.");
+    }
+    try{await removeImages(row.image_paths||[])}catch(imgErr){console.warn("image cleanup",imgErr)}
+    await refreshAdminList();
+    await loadProducts();
+  }catch(e){
+    console.error("delete product error",e);
+    alert("تعذر الحذف: "+(e.message||e));
+  }
+}
 
 loadSiteSettings();
 
