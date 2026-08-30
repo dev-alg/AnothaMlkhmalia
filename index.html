@@ -1116,7 +1116,11 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
 </style>
 <style id="world-express-office-style">
 .world-express-office{margin-top:12px;padding:12px;border:1px solid rgba(183,110,121,.18);border-radius:14px;background:rgba(245,225,228,.42)}
+.world-express-office:not([hidden]){display:block!important;visibility:visible!important;opacity:1!important}
 .world-express-office[hidden]{display:none!important}
+.order-products-total{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:13px 15px;border-radius:14px;background:#fff;border:1px solid rgba(183,110,121,.20);box-shadow:0 5px 18px rgba(107,58,66,.05);font-weight:800;color:#6B3A42}
+.order-products-total strong{font-size:1.05rem;color:#6B3A42}
+.delivery-total{margin-top:22px!important;background:#F5E1E4;border:1px solid rgba(183,110,121,.22);box-shadow:0 4px 14px rgba(107,58,66,.04)}
 .world-express-office label{margin-top:0!important}
 .world-express-office select{width:100%;border:1px solid #E5C8CC;border-radius:12px;padding:11px 12px;font:inherit;background:#FDF8F5;color:#6B3A42;outline:none}
 .world-express-office select:focus{border-color:#B76E79;box-shadow:0 0 0 3px rgba(183,110,121,.10)}
@@ -1327,9 +1331,13 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
           </select>
           <small id="worldExpressOfficeHint">سيظهر هنا كل مكاتب World Express المتاحة في الولاية المختارة.</small>
         </div>
+
+        <div class="order-products-total">
+          <span>مجموع المنتجات</span>
+          <strong id="orderProductsTotalText">0 دج</strong>
+        </div>
         <div class="delivery-total">
-          <span id="deliveryFeeText">التوصيل: —</span>
-          
+          <span id="deliveryFeeText">سعر التوصيل: —</span>
         </div>
         <button class="modal-submit" id="orderSubmit" type="submit">إتمام الطلب</button>
       </div>
@@ -1515,6 +1523,7 @@ const orderSubmit = document.getElementById("orderSubmit");
 const deliveryProvince = document.getElementById("c");
 const deliveryType = document.getElementById("deliveryType");
 const deliveryFeeText = document.getElementById("deliveryFeeText");
+const orderProductsTotalText = document.getElementById("orderProductsTotalText");
 const orderTotalText = document.getElementById("orderTotalText");
 const deliveryFeeInput = document.getElementById("deliveryFeeInput");
 const orderTotalInput = document.getElementById("orderTotalInput");
@@ -1530,20 +1539,24 @@ function renderCart(){updateCartCount();cartItems.innerHTML="";const has=cart.le
 function fillDeliveryProvinces(){Object.keys(SHIPPING_RATES).forEach(name=>{const o=document.createElement("option");o.value=name;o.textContent=name;deliveryProvince.appendChild(o)})}
 function updateDeliveryPrice(){
   const base=subtotal();
+  if(orderProductsTotalText){
+    orderProductsTotalText.textContent=base.toLocaleString("ar-DZ")+" دج";
+  }
   const rates=SHIPPING_RATES[deliveryProvince.value];
   if(!cart.length){
-    deliveryFeeText.textContent="التوصيل: —";
+    deliveryFeeText.textContent="سعر التوصيل: —";
+    deliveryFeeInput.value="";
     orderSubmit.textContent="إتمام الطلب";
     return;
   }
   if(!rates){
-    deliveryFeeText.textContent="التوصيل: اختاري الولاية";
+    deliveryFeeText.textContent="سعر التوصيل: اختاري الولاية";
     deliveryFeeInput.value="";
     orderSubmit.textContent="إتمام الطلب";
     return;
   }
   const fee=Number(rates[deliveryType.value==="home"?0:1]||0);
-  deliveryFeeText.textContent="التوصيل: "+fee.toLocaleString("ar-DZ")+" دج";
+  deliveryFeeText.textContent="سعر التوصيل: "+fee.toLocaleString("ar-DZ")+" دج";
   deliveryFeeInput.value=fee+" دج";
   orderSubmit.textContent="إتمام الطلب";
 }
@@ -1572,7 +1585,9 @@ function updateWorldExpressOffices(){
     return;
   }
 
-  const province=normalizeOfficeProvinceName(deliveryProvince.value);
+  const selectedOption=deliveryProvince.options[deliveryProvince.selectedIndex];
+  const provinceRaw=deliveryProvince.value || selectedOption?.textContent || "";
+  const province=normalizeOfficeProvinceName(provinceRaw);
   const list=WORLD_EXPRESS_OFFICES[province]||[];
   select.innerHTML="";
 
