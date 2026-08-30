@@ -673,6 +673,25 @@ body{background:#FDF8F5;color:#6B3A42}
 .shipping-faint th,.shipping-faint td{border-color:rgba(107,58,66,.15)}
 .shipping-faint .home{color:#7B927E}.shipping-faint .office{color:#7D7F98}
 
+
+/* Floating cart: fixed at bottom-right and stays visible while scrolling */
+.cart-btn{
+  position:fixed !important;
+  right:22px !important;
+  bottom:22px !important;
+  z-index:9500 !important;
+  padding:13px 18px !important;
+  font-size:.95rem !important;
+  border-radius:999px !important;
+  box-shadow:0 12px 30px rgba(107,58,66,.20) !important;
+}
+.cart-btn b{min-width:26px !important;height:26px !important;font-size:.8rem !important}
+.cart-icon{font-size:1.2rem !important}
+@media(max-width:600px){
+  .cart-btn{right:16px !important;bottom:18px !important;padding:12px 16px !important;font-size:.9rem !important}
+  .cart-btn span{display:inline !important}
+}
+
 </style>
 
 <style id="velvet-animated-background">
@@ -1254,6 +1273,27 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
 }
 </style>
 
+
+<style id="fixed-floating-cart-override">
+.cart-btn{position:fixed!important;right:18px!important;bottom:18px!important;top:auto!important;z-index:9999!important;padding:14px 18px!important;font-size:.95rem!important;gap:9px!important;box-shadow:0 12px 30px rgba(107,58,66,.22)!important}
+.cart-btn b{min-width:25px!important;height:25px!important;font-size:.78rem!important}
+@media(max-width:600px){.cart-btn{right:14px!important;bottom:14px!important;padding:13px 16px!important}.cart-btn span{display:inline!important}}
+</style>
+
+<style id="viewport-floating-cart-final">
+#cartOpen.cart-btn{
+  position:fixed !important;
+  right:16px !important;
+  bottom:calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+  top:auto !important;
+  left:auto !important;
+  z-index:2147483647 !important;
+  transform:none !important;
+  padding:13px 17px !important;
+  font-size:.92rem !important;
+}
+@media(min-width:601px){#cartOpen.cart-btn{right:22px!important;bottom:22px!important;padding:14px 19px!important;font-size:1rem!important}}
+</style>
 </head>
 <body>
 
@@ -1262,9 +1302,12 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
   <a class="nav-ig" href="https://www.instagram.com/laraty_dz?igsi=MXh2aTVqc3FzdDJ3aw==" target="_blank" rel="noopener">
     @laraty_dz
   </a>
-  <button class="cart-btn" id="cartOpen" type="button" aria-label="فتح سلة التسوق">🛒 <span>السلة</span><b id="cartCount">0</b></button>
   <button class="admin-btn" id="adminOpen" type="button">إدارة المنتجات</button>
 </nav>
+
+<!-- Floating cart kept outside the navigation so it stays fixed to the viewport -->
+  <button class="cart-btn" id="cartOpen" type="button" aria-label="فتح سلة التسوق">🛒 <span>السلة</span><b id="cartCount">0</b></button>
+
 
 <header class="hero">
   <div class="hero-brand-lockup">
@@ -2369,6 +2412,41 @@ async function loadAdminOrders(){
     const data=await r.json();
     if(!r.ok) throw new Error(data?.message||JSON.stringify(data));
     ADMIN_ORDERS=Array.isArray(data)?data:[];
+
+    // ربط كل طلب بمنتجاته الفعلية من جدول order_items حتى تظهر أسماء المنتجات في لوحة الطلبات.
+    if(ADMIN_ORDERS.length){
+      const orderIds=ADMIN_ORDERS.map(o=>o.id).filter(Boolean);
+      if(orderIds.length){
+        const itemsUrl=ITEMS_URL+"?select=order_id,product_name,quantity&order_id=in.("+orderIds.join(",")+")";
+        try{
+          const ir=await fetch(itemsUrl,{headers:currentSessionHeaders()});
+          const itemData=await ir.json();
+          if(ir.ok && Array.isArray(itemData)){
+            const byOrder={};
+            itemData.forEach(item=>{
+              const id=String(item.order_id||"");
+              if(!id) return;
+              (byOrder[id] ||= []).push(item);
+            });
+            ADMIN_ORDERS.forEach(o=>{
+              const items=byOrder[String(o.id)]||[];
+              if(items.length){
+                o.items_text=items.map(item=>{
+                  const name=String(item.product_name||"منتج بدون اسم");
+                  const qty=Math.max(1,Number(item.quantity)||1);
+                  return name+" × "+qty;
+                }).join("\n");
+              }else if(!o.items_text){
+                o.items_text="—";
+              }
+            });
+          }
+        }catch(itemsError){
+          console.warn("تعذر تحميل منتجات الطلبات:",itemsError);
+        }
+      }
+    }
+
     renderAdminOrders();
     updateDashboardStats();
   }catch(e){
