@@ -1338,8 +1338,6 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
           <span id="deliveryFeeText">التوصيل: —</span>
           <small id="orderTotalText">الإجمالي: —</small>
         </div>
-        <label for="m">ملاحظة (المقاس أو أي تفاصيل)</label>
-        <textarea id="m" name="ملاحظة" placeholder="المقاس أو أي تفاصيل إضافية"></textarea>
         <button class="modal-submit" id="orderSubmit" type="submit">إتمام الطلب</button>
       </div>
     </form>
@@ -2100,7 +2098,7 @@ async function saveOrderToSupabase(order, items){
     headers:{...apiHeaders(""),"Prefer":"return=representation"},
     body:JSON.stringify(order)
   });
-  if(!r.ok){ const t=await r.text(); throw new Error("تعذر حفظ الطلب في Supabase. إذا ظهر الخطأ 42501، شغّل ملف supabase_orders_rls_fix_v2.sql مرة واحدة في Supabase SQL Editor.\n"+t); }
+  if(!r.ok){ const t=await r.text(); throw new Error("تعذر حفظ الطلب في قاعدة البيانات. نفّذ ملف supabase_orders_complete_fix.sql مرة واحدة في Supabase SQL Editor ثم أعد المحاولة.\n"+t); }
   const rows=await r.json();
   const orderId=rows?.[0]?.id;
   if(orderId && items.length){
