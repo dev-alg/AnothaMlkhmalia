@@ -1338,8 +1338,6 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
           <span id="deliveryFeeText">التوصيل: —</span>
           <small id="orderTotalText">الإجمالي: —</small>
         </div>
-        <label for="m">ملاحظة (المقاس أو أي تفاصيل)</label>
-        <textarea id="m" name="ملاحظة" placeholder="المقاس أو أي تفاصيل إضافية"></textarea>
         <button class="modal-submit" id="orderSubmit" type="submit">إتمام الطلب</button>
       </div>
     </form>
@@ -2090,17 +2088,26 @@ function currentSessionHeaders(){return apiHeaders();}
 function money(n){return (Number(n)||0).toLocaleString("ar-DZ")+" دج";}
 
 async function saveOrderToSupabase(order, items){
+  // Checkout is public: use the publishable key without an admin bearer token.
+  // This works with the public INSERT policy created by the accompanying SQL.
+  const publicHeaders={...apiHeaders(""),"Prefer":"return=representation"};
   const r=await fetch(ORDERS_URL,{
     method:"POST",
-    headers:{...currentSessionHeaders(),"Prefer":"return=representation"},
+    headers:publicHeaders,
     body:JSON.stringify(order)
   });
-  if(!r.ok) throw new Error("تعذر حفظ الطلب في Supabase: "+await r.text());
+  if(!r.ok){
+    const msg=await r.text();
+    if(r.status===401 || r.status===403 || msg.includes("42501") || msg.includes("row-level security")){
+      throw new Error("Supabase يمنع إضافة الطلبات للزوار. شغّل ملف supabase_orders_rls_fix.sql مرة واحدة في SQL Editor.");
+    }
+    throw new Error("تعذر حفظ الطلب في Supabase: "+msg);
+  }
   const rows=await r.json();
   const orderId=rows?.[0]?.id;
   if(orderId && items.length){
     const payload=items.map(x=>({...x,order_id:orderId}));
-    const ir=await fetch(ITEMS_URL,{method:"POST",headers:{...currentSessionHeaders(),"Prefer":"return=minimal"},body:JSON.stringify(payload)});
+    const ir=await fetch(ITEMS_URL,{method:"POST",headers:{...apiHeaders(""),"Prefer":"return=minimal"},body:JSON.stringify(payload)});
     if(!ir.ok) throw new Error("تم حفظ الطلب لكن تعذر حفظ تفاصيل المنتجات: "+await ir.text());
   }
 }
