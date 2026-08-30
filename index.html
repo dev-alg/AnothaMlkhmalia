@@ -1338,6 +1338,8 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
           <span id="deliveryFeeText">التوصيل: —</span>
           <small id="orderTotalText">الإجمالي: —</small>
         </div>
+        <label for="m">ملاحظة (المقاس أو أي تفاصيل)</label>
+        <textarea id="m" name="ملاحظة" placeholder="المقاس أو أي تفاصيل إضافية"></textarea>
         <button class="modal-submit" id="orderSubmit" type="submit">إتمام الطلب</button>
       </div>
     </form>
@@ -1497,10 +1499,12 @@ async function loadProducts(){
     const r=await fetch(TABLE_URL+"?select=*&active=eq.true&order=created_at.desc",{headers:apiHeaders("")});
     if(!r.ok) throw new Error(await r.text());
     const rows=await r.json();
-    if(Array.isArray(rows) && rows.length){
-      PRODUCTS=rows.filter(x=>x && x.name!==SITE_SETTINGS_MARKER).map(normalizeProduct);
-    }
-  }catch(e){ console.warn("Supabase products unavailable; using local products",e); }
+    if(!Array.isArray(rows)) throw new Error("استجابة المنتجات من Supabase غير صحيحة.");
+    // Supabase is the source of truth for the storefront.
+    PRODUCTS=rows.filter(x=>x && x.name!==SITE_SETTINGS_MARKER).map(normalizeProduct);
+  }catch(e){
+    console.warn("Supabase products unavailable; using local products",e);
+  }
   render();
 }
 
@@ -1650,6 +1654,9 @@ async function loadSiteSettings(){
     instagramEditor.value=v.instagram||"https://www.instagram.com/banat_3roussat?igsi=aGdjNmJuN3BpMTRr";
   }catch(e){ console.warn("site settings unavailable",e); applySiteSettings({siteTitle:DEFAULT_SITE_TITLE,siteDescription:DEFAULT_SITE_DESCRIPTION}); }
 }
+
+// Load the live Supabase catalogue immediately when the storefront opens.
+loadProducts();
 
 function applySiteSettings(v){
   const title=(v?.siteTitle||DEFAULT_SITE_TITLE).trim()||DEFAULT_SITE_TITLE;
@@ -1977,7 +1984,7 @@ render();
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  const forms = document.querySelectorAll('form[action*="formspree.io/f/"]');
+  const forms = document.querySelectorAll('form[action*="formspree.io/f/"]:not(#checkoutForm)');
 
   forms.forEach(function (form, index) {
     // Use a hidden iframe instead of fetch(). This also works when the HTML
@@ -2088,27 +2095,18 @@ function currentSessionHeaders(){return apiHeaders();}
 function money(n){return (Number(n)||0).toLocaleString("ar-DZ")+" دج";}
 
 async function saveOrderToSupabase(order, items){
-  // Checkout is public: use the publishable key without an admin bearer token.
-  // This works with the public INSERT policy created by the accompanying SQL.
-  const publicHeaders={...apiHeaders(""),"Prefer":"return=representation"};
   const r=await fetch(ORDERS_URL,{
     method:"POST",
-    headers:publicHeaders,
+    headers:{...apiHeaders(""),"Prefer":"return=representation"},
     body:JSON.stringify(order)
   });
-  if(!r.ok){
-    const msg=await r.text();
-    if(r.status===401 || r.status===403 || msg.includes("42501") || msg.includes("row-level security")){
-      throw new Error("Supabase يمنع إضافة الطلبات للزوار. شغّل ملف supabase_orders_rls_fix.sql مرة واحدة في SQL Editor.");
-    }
-    throw new Error("تعذر حفظ الطلب في Supabase: "+msg);
-  }
+  if(!r.ok){ const t=await r.text(); throw new Error("تعذر حفظ الطلب في Supabase. إذا ظهر الخطأ 42501، شغّل ملف supabase_orders_rls_fix_v2.sql مرة واحدة في Supabase SQL Editor.\n"+t); }
   const rows=await r.json();
   const orderId=rows?.[0]?.id;
   if(orderId && items.length){
     const payload=items.map(x=>({...x,order_id:orderId}));
     const ir=await fetch(ITEMS_URL,{method:"POST",headers:{...apiHeaders(""),"Prefer":"return=minimal"},body:JSON.stringify(payload)});
-    if(!ir.ok) throw new Error("تم حفظ الطلب لكن تعذر حفظ تفاصيل المنتجات: "+await ir.text());
+    if(!ir.ok){ const t=await ir.text(); throw new Error("تم حفظ الطلب لكن تعذر حفظ تفاصيل المنتجات في Supabase. تحقق من سياسة INSERT لجدول order_items.\n"+t); }
   }
 }
 
