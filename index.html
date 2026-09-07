@@ -1467,6 +1467,7 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
         <label>اللون</label><input id="productColor" placeholder="مثال: أسود">
         <label>الوصف</label><textarea id="productDesc" required></textarea>
         <label>السعر (دج)</label><input id="productPrice" type="number" min="0" step="1" required>
+        <label class="stock-toggle-label"><input id="productOutOfStock" type="checkbox"> <span>نفد المخزون — إظهار «Rupture de stock» للزبون</span></label>
         <label>الصور <span class="admin-muted">(يمكن اختيار عدة صور)</span></label><input id="productImages" type="file" accept="image/*" multiple>
         <div id="currentImages" class="current-images"></div>
         <div class="admin-actions"><button class="modal-submit" type="submit" id="saveProduct">إضافة المنتج</button><button class="admin-secondary" type="button" id="cancelEdit">مسح</button></div>
@@ -1548,7 +1549,8 @@ function normalizeProduct(p){
     color:p.color||"",
     desc:p.description||"",
     price:(Number(p.price)||0)+" دج",
-    images:paths.map(imageUrl)
+    images:paths.map(imageUrl),
+    outOfStock: !!(SITE_SETTINGS_VALUE?.outOfStock && SITE_SETTINGS_VALUE.outOfStock[String(p.id)])
   };
 }
 let PRODUCT_ORDER = {};
@@ -1720,14 +1722,14 @@ function render(){
     const many=prod.images.length>1;
     const pips=many?`<div class="pips">${prod.images.map((_,i)=>`<span class="pip ${i===state[pi]?"on":""}"></span>`).join("")}</div>`:"";
     const imgs=prod.images.map((src,i)=>`<img src="${src}" alt="${prod.name}" class="${i===state[pi]?"on":""}" draggable="false">`).join("");
-    card.innerHTML=`<div class="img-box ${many?"has-many":""}" data-pi="${pi}">${imgs}${pips}${many?'<span class="img-hint">اضغطي للتبديل</span>':""}</div><div class="info"><h3>${prod.name}</h3><div class="row"><span class="price">${prod.price}</span></div><button class="buy main-add" type="button">أضف إلى السلة 🛒</button></div>`;
+    card.innerHTML=`<div class="img-box ${many?"has-many":""}" data-pi="${pi}">${imgs}${pips}${many?'<span class="img-hint">اضغطي للتبديل</span>':""}${prod.outOfStock?'<span class="stock-badge">Rupture de stock</span>':""}</div><div class="info"><h3>${prod.name}</h3><div class="row"><span class="price">${prod.price}</span></div>${prod.outOfStock?'<button class="buy main-add out-of-stock-btn" type="button" disabled>Rupture de stock</button>':'<button class="buy main-add" type="button">أضف إلى السلة 🛒</button>'}</div>`;
     const box=card.querySelector(".img-box");
     box.addEventListener("click",e=>{
       e.stopPropagation();
       if(many){ state[pi]=(state[pi]+1)%prod.images.length; box.querySelectorAll("img").forEach((img,i)=>img.classList.toggle("on",i===state[pi])); box.querySelectorAll(".pip").forEach((q,i)=>q.classList.toggle("on",i===state[pi])); }
       else openProductDetails(prod);
     });
-    card.querySelector(".main-add").addEventListener("click",e=>{e.stopPropagation();addToCart(prod);const b=e.currentTarget;b.textContent="تمت الإضافة ✓";setTimeout(()=>b.textContent="أضف إلى السلة 🛒",900)});
+    card.querySelector(".main-add").addEventListener("click",e=>{e.stopPropagation();if(prod.outOfStock)return;addToCart(prod);const b=e.currentTarget;b.textContent="تمت الإضافة ✓";setTimeout(()=>b.textContent="أضف إلى السلة 🛒",900)});
     card.addEventListener("click",()=>openProductDetails(prod));
     card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openProductDetails(prod)}});
     const parts=document.createElement("div"); parts.className="particles";
@@ -1850,7 +1852,7 @@ document.getElementById("adminLogout").addEventListener("click",async()=>{
 });
 
 document.getElementById("cancelEdit").addEventListener("click",resetProductForm);
-function resetProductForm(){editId.value="";productName.value="";productColor.value="";productDesc.value="";productPrice.value="";productImages.value="";currentImages.innerHTML="";saveProduct.textContent="إضافة المنتج";productError.textContent="";}
+function resetProductForm(){editId.value="";productName.value="";productColor.value="";productDesc.value="";productPrice.value="";productOutOfStock.checked=false;productImages.value="";currentImages.innerHTML="";saveProduct.textContent="إضافة المنتج";productError.textContent="";}
 function showCurrentImages(paths){currentImages.innerHTML="";(paths||[]).forEach(p=>{const img=document.createElement("img");img.src=imageUrl(p);currentImages.appendChild(img)});}
 function escapeHtml(value){
   return String(value ?? "")
@@ -1926,14 +1928,21 @@ async function refreshAdminList(){
       const price=Number(row.price||0).toLocaleString("ar-DZ");
       const orderValue=Number(PRODUCT_ORDER[String(row.id)]);
       const orderInputValue=Number.isFinite(orderValue)&&orderValue>0 ? String(orderValue) : "";
+      const isOut=!!(SITE_SETTINGS_VALUE?.outOfStock && SITE_SETTINGS_VALUE.outOfStock[String(row.id)]);
       item.innerHTML=imageHtml+
         '<div class="admin-item-main"><strong>'+escapeHtml(row.name||"منتج بدون اسم")+
-        '</strong><span>'+price+' دج</span></div>'+
+        '</strong><span>'+price+' دج</span><label class="admin-stock-switch"><input type="checkbox" class="admin-stock-check" '+(isOut?'checked':'')+'> <span>Rupture de stock</span></label></div>'+
         '<div class="admin-item-actions"><label style="margin:0;display:flex;align-items:center;gap:6px;color:#aeb9c8;font-size:12px">الترتيب<input class="admin-order-input" type="number" min="1" step="1" value="'+orderInputValue+'" placeholder="—"></label>'+
         '<button class="admin-edit" type="button">تعديل المنتج</button>'+
         '<button class="admin-delete" type="button">حذف</button></div>';
       item.querySelector(".admin-edit").onclick=()=>startEdit(row);
       item.querySelector(".admin-delete").onclick=()=>deleteProduct(row);
+      item.querySelector(".admin-stock-check").onchange=async e=>{
+        const check=e.currentTarget; check.disabled=true;
+        try{ await saveProductStockStatus(row.id,check.checked); await loadProducts(); }
+        catch(err){ check.checked=!check.checked; alert("تعذر تغيير حالة المخزون: "+(err.message||err)); }
+        finally{ check.disabled=false; }
+      };
       adminList.appendChild(item);
     });
   }catch(e){
@@ -1952,6 +1961,7 @@ function startEdit(row){
   productColor.value=row.color||"";
   productDesc.value=row.description||"";
   productPrice.value=row.price??"";
+  productOutOfStock.checked=!!(SITE_SETTINGS_VALUE?.outOfStock && SITE_SETTINGS_VALUE.outOfStock[String(row.id)]);
   productImages.value="";
   showCurrentImages(row.image_paths);
   saveProduct.textContent="حفظ التعديل";
@@ -1960,6 +1970,14 @@ function startEdit(row){
 }
 async function uploadImages(files){const paths=[];for(const file of files){const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"jpg");const path=(crypto.randomUUID ? crypto.randomUUID() : (Date.now()+"-"+Math.random().toString(36).slice(2)))+"."+ext;const r=await fetch(SUPABASE_URL+"/storage/v1/object/"+BUCKET+"/"+path,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+accessToken,"Content-Type":file.type||"application/octet-stream","x-upsert":"false"},body:file});if(!r.ok)throw new Error(await r.text());paths.push(path);}return paths;}
 async function removeImages(paths){for(const path of (paths||[])){await fetch(SUPABASE_URL+"/storage/v1/object/"+BUCKET,{method:"DELETE",headers:apiHeaders(),body:JSON.stringify({prefixes:[path]})});}}
+async function saveProductStockStatus(productId, outOfStock){
+  if(!productId) return;
+  const value={...SITE_SETTINGS_VALUE,productOrder:{...PRODUCT_ORDER},outOfStock:{...(SITE_SETTINGS_VALUE?.outOfStock||{}),[String(productId)]:!!outOfStock}};
+  const r=await fetch(SUPABASE_URL+"/rest/v1/site_settings?on_conflict=key",{method:"POST",headers:{...apiHeaders(),"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({key:"main",value})});
+  if(!r.ok) throw new Error(await r.text());
+  SITE_SETTINGS_VALUE=value;
+}
+
 productForm.addEventListener("submit",async e=>{
   e.preventDefault();
   productError.textContent="";
@@ -2022,6 +2040,9 @@ productForm.addEventListener("submit",async e=>{
     if(!Array.isArray(data) || !data.length){
       throw new Error("تم إرسال الطلب لكن Supabase لم يُرجع المنتج. تحقق من RLS وسياسات INSERT/UPDATE.");
     }
+
+    const savedProductId=String(data[0]?.id||id||"");
+    if(savedProductId) await saveProductStockStatus(savedProductId,productOutOfStock.checked);
 
     // Delete old images only after the database update succeeded.
     if(id && files.length && Array.isArray(existing?.image_paths) && existing.image_paths.length){
@@ -2665,6 +2686,14 @@ html,body{background:#FFF9F8!important;color:#6B4650!important;overflow-x:hidden
  .hero::before,.hero::after{width:24%!important;opacity:.35!important}
 }
 @media(max-width:360px){.hero-brand-name{font-size:1.65rem!important}.hero-logo-stage .brand-mark{width:66vw!important}}
+</style>
+<style id="stock-status-style">
+.stock-badge{position:absolute;inset:auto 10px 10px 10px;z-index:8;text-align:center;padding:9px 12px;border-radius:12px;background:rgba(107,58,66,.94);color:#fff;font-weight:900;font-size:.78rem;box-shadow:0 8px 20px rgba(107,58,66,.18)}
+.out-of-stock-btn{background:#b9a9ad!important;color:#fff!important;cursor:not-allowed!important;opacity:.9}
+.product:has(.out-of-stock-btn) .img-box img{filter:grayscale(.12);opacity:.72!important}
+.admin-stock-switch{display:inline-flex;align-items:center;gap:6px;margin-top:8px!important;font-size:11px!important;color:#8f4c58!important;font-weight:800!important}
+.admin-stock-switch input{width:17px!important;height:17px!important;margin:0!important;accent-color:#B76E79}
+@media(max-width:600px){.stock-badge{font-size:.68rem;padding:8px 6px}.admin-stock-switch{font-size:10px!important}}
 </style>
 </body>
 </html>
