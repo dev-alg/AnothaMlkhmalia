@@ -2354,16 +2354,30 @@ async function submitOrderBoth(){
 
     // Then send the exact same order to Formspree. Formspree sends submissions
     // to the target email configured for this form.
-    const fd=new FormData(form);
-    fd.set("المنتجات",cart.map(x=>`${x.name} × ${x.qty}`).join("\n"));
-    fd.set("السعر قبل التوصيل",productsTotal+" دج");
-    fd.set("سعر التوصيل",fee+" دج");
-    fd.set("الإجمالي",total+" دج");
-    fd.set("الولاية",provinceText);
-    if(office) fd.set("مكتب World Express",office);
-    const response=await fetch("https://formspree.io/f/mbgjlqrr",{method:"POST",headers:{"Accept":"application/json"},body:fd});
-    if(!response.ok){
-      throw new Error("تم حفظ الطلب في الموقع، لكن تعذر إرسال نسخة البريد عبر Formspree.");
+    // Formspree rejects non-ASCII field names, so send a clean JSON payload with ASCII keys.
+    const payload={
+      name:order.customer_name,
+      phone:order.phone,
+      address:document.getElementById("a")?.value.trim()||"",
+      wilaya:provinceText,
+      commune:order.commune,
+      delivery_type:order.delivery_type==="office"?"Stopdesk (مكتب)":"Home (المنزل)",
+      office:office,
+      products:cart.map(x=>`${x.name} × ${x.qty}`).join("\n"),
+      products_total:productsTotal+" DA",
+      delivery_price:fee+" DA",
+      grand_total:total+" DA",
+      _subject:"طلب جديد - أنوثة مخملية"
+    };
+    try{
+      const response=await fetch("https://formspree.io/f/mbgjlqrr",{method:"POST",headers:{"Accept":"application/json","Content-Type":"application/json"},body:JSON.stringify(payload)});
+      if(!response.ok){
+        const t=await response.text().catch(()=>"");
+        console.warn("Formspree failed:",response.status,t);
+      }
+    }catch(mailErr){
+      // The order is already saved in the database, so an email failure must not alarm the customer.
+      console.warn("Formspree error:",mailErr);
     }
     alert("تم إرسال طلبك بنجاح 🌸");
     cart=[]; saveCart(); renderCart(); updateCartCount(); form.reset(); updateDeliveryPrice(); updateWorldExpressOffices();
