@@ -1367,14 +1367,6 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
           <option value="home">إلى المنزل</option>
           <option value="office">إلى المكتب (Stopdesk)</option>
         </select>
-        <div id="worldExpressOfficeWrap" class="world-express-office" hidden>
-          <label for="worldExpressOffice">مكتب World Express</label>
-          <select id="worldExpressOffice" name="مكتب World Express" disabled>
-            <option value="">اختاري الولاية أولاً</option>
-          </select>
-          <small id="worldExpressOfficeHint">سيظهر هنا كل مكاتب World Express المتاحة في الولاية المختارة.</small>
-        </div>
-
         <div class="order-products-total">
           <span>مجموع المنتجات</span>
           <strong id="orderProductsTotalText">0 دج</strong>
@@ -1645,6 +1637,7 @@ function normalizeOfficeProvinceName(name){
   return aliases[n]||n;
 }
 function updateWorldExpressOffices(){
+  if(!document.getElementById("worldExpressOfficeWrap")) return;
   const wrap=document.getElementById("worldExpressOfficeWrap");
   const select=document.getElementById("worldExpressOffice");
   const hint=document.getElementById("worldExpressOfficeHint");
@@ -2324,11 +2317,7 @@ async function submitOrderBoth(){
     const fee=rates?Number(rates[deliveryType.value==="home"?0:1]||0):0;
     const total=productsTotal+fee;
     const provinceText=deliveryProvince.options[deliveryProvince.selectedIndex]?.text||"";
-    const officeEl=document.getElementById("worldExpressOffice");
-    const office=officeEl?.value||"";
-    if(deliveryType.value==="office" && !office){
-      throw new Error("اختاري مكتب World Express لاستلام الطلب.");
-    }
+    const office="";
     const items=cart.map(x=>({
       product_id:x.id||null,
       product_name:x.name,
