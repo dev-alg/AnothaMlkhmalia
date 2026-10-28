@@ -1133,18 +1133,18 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
  .hero-brand-lockup::before,.hero-brand-lockup::after{animation:none!important}
 }
 </style>
-<style id="world-express-office-style">
-.world-express-office{margin-top:12px;padding:12px;border:1px solid rgba(183,110,121,.18);border-radius:14px;background:rgba(245,225,228,.42)}
-.world-express-office:not([hidden]){display:block!important;visibility:visible!important;opacity:1!important}
-.world-express-office[hidden]{display:none!important}
+<style id="noest-office-style">
+.noest-office{margin-top:12px;padding:12px;border:1px solid rgba(183,110,121,.18);border-radius:14px;background:rgba(245,225,228,.42)}
+.noest-office:not([hidden]){display:block!important;visibility:visible!important;opacity:1!important}
+.noest-office[hidden]{display:none!important}
 .order-products-total{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:13px 15px;border-radius:14px;background:#fff;border:1px solid rgba(183,110,121,.20);box-shadow:0 5px 18px rgba(107,58,66,.05);font-weight:800;color:#6B3A42}
 .order-products-total strong{font-size:1.05rem;color:#6B3A42}
 .delivery-total{margin-top:22px!important;background:#F5E1E4;border:1px solid rgba(183,110,121,.22);box-shadow:0 4px 14px rgba(107,58,66,.04)}
-.world-express-office label{margin-top:0!important}
-.world-express-office select{width:100%;border:1px solid #E5C8CC;border-radius:12px;padding:11px 12px;font:inherit;background:#FDF8F5;color:#6B3A42;outline:none}
-.world-express-office select:focus{border-color:#B76E79;box-shadow:0 0 0 3px rgba(183,110,121,.10)}
-.world-express-office small{display:block;margin-top:6px;color:#9B777B;font-size:.72rem;line-height:1.6}
-.world-express-office.no-offices{background:#fff8f9}
+.noest-office label{margin-top:0!important}
+.noest-office select{width:100%;border:1px solid #E5C8CC;border-radius:12px;padding:11px 12px;font:inherit;background:#FDF8F5;color:#6B3A42;outline:none}
+.noest-office select:focus{border-color:#B76E79;box-shadow:0 0 0 3px rgba(183,110,121,.10)}
+.noest-office small{display:block;margin-top:6px;color:#9B777B;font-size:.72rem;line-height:1.6}
+.noest-office.no-offices{background:#fff8f9}
 </style>
 
 <style id="remove-hero-tagline-only">
@@ -1371,12 +1371,12 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
           <option value="home">إلى المنزل</option>
           <option value="office">إلى المكتب (Stopdesk)</option>
         </select>
-        <div class="world-express-office" id="worldExpressOfficeWrap" hidden>
-          <label for="worldExpressOffice">اختاري مكتب World Express في الولاية</label>
-          <select id="worldExpressOffice" name="مكتب التوصيل" disabled>
+        <div class="noest-office" id="noestOfficeWrap" hidden>
+          <label for="noestOffice">اختاري مكتب Noest في الولاية</label>
+          <select id="noestOffice" name="مكتب التوصيل" disabled>
             <option value="">اختاري الولاية أولاً</option>
           </select>
-          <small id="worldExpressOfficeHint">اختاري الولاية لتظهر المكاتب المتاحة وعناوينها.</small>
+          <small id="noestOfficeHint">اختاري الولاية لتظهر المكاتب المتاحة وعناوينها.</small>
         </div>
         <div class="order-products-total">
           <span>مجموع المنتجات</span>
@@ -1647,7 +1647,7 @@ function updateDeliveryPrice(){
   orderSubmit.textContent="إتمام الطلب";
 }
 
-const WORLD_EXPRESS_OFFICES = {"Adrar":["Adrar — وسط المدينة، بجانب محل حاج قريفة القديم، مقابل المركز التجاري، حي الحطابة"],"Chlef":["الشلف — شارع بحيرة الغابات (بجانب CNRC)","تنس — شارع شرشال مقابل المدرسة الابتدائية الإخوة مناد — 0560469155"],"Laghouat":["الأغواط — حي الوئام، مقابل الطفولة المسعفة (على بعد 100 م من المكتب القديم)","أفلو — شارع القعدة، بجانب مخبزة بلخير — 0550314898"],"Oum El Bouaghi":["أم البواقي — حي 176 مسكن LSP، مبنى 13","عين مليلة — حي الهناء، طريق ثانوية مساش — 0561848298","عين البيضاء — مقابل CNAS بجانب صيدلية بلعمري"],"Batna":["Batna — Cité Meddour Kchida مقابل عمارات 500 مسكن","Barika — حي شعباني مقابل الموثق بشير فرحاني بجانب اتصالات الجزائر","Batna — حي 1200 مسكن أولمي مقابل البريد الجديد ومحطة Petro Baraka"],"Bejaia":["Béjaïa — Rue des frères Tabet على بعد 20م من فندق Golden H مقابل الترقية الجديدة","Akbou — Rue Hibouche، عرافو مقابل حافلات جرجرة وAlliance Assurances","القصر — شارع حموي حميد، بلدية القصر، مقابل سمباك القصر"],"Biskra":["بسكرة — رقم 05، حي البستان (حي المجاهدين) مقابل مركز التكوين والتدخل السريع للشرطة — 0770608890"],"Bechar":["بشار — حي 622 مسكن البدر رقم 02، بلوك 52 (خلف راديو الساورة / مقابل الحماية المدنية)"],"Blida":["Blida — El Ramoul بجانب المحطة البرية الجديدة","Boufarik — إقامة بلقبير مقابل قاعة حفلات ليالينا","Mouzaïa — 54 مسكن LPP مقابل ثانوية قاسم نايت قاسم"],"Bouira":["Bouira — Villa Hamzaoui، عمار خوجة","Lakhdaria — الطريق الوطني رقم 05، مشروع 55 مسكن LSP، عمارة A، بجانب مستودع بيع سميد ماما"],"Tamanrasset":["Tamanrasset — حي مولاي عمر خلف مقر الدائرة وبجانب موقف مديرية الأشغال العمومية"],"Tebessa":["Tébessa — بجانب مفوضية الشرطة الثانية ومحل الأثاث REDEL","El Ouenza — حي EPLF بجانب مصلحة المياه","Bir El Ater — الطريق الوطني رقم 16 مقابل محطة نفطال"],"Tlemcen":["Tlemcen — Les Dhalias، 426 الكيفان","Maghnia — أولاد بن صابر بجانب مطعم Rais","Mansourah — إقامة القدس"],"Tiaret":["Tiaret — Cité 180 logements CNT، محل 01 رقم 63","Frenda — Cité 60 logements D121 GP 82","Ksar Chellala — حي حسين آيت أحمد، رقم 17 بجانب مسجد الإمام علي"],"Tizi Ouzou":["Tizi Ouzou — Cité 450 logements، المدينة الجديدة مقابل قاعة حفلات Lilya","Azazga — الطريق الوطني رقم 12، تادارت","Draâ Ben Khedda — تعاونية الورود مقابل ADE وANEM"],"Alger":["Zéralda — Cité 62 local LPP، عمارة 5C","بئر خادم — بئر خادم المالحة — 0560004746","Hussein Dey — Rue Layache Yahia رقم 06 مقابل مسجد Brossette","الدرارية — بوجمعة تميم الأنصار — 0560521522","Bir Mourad Raïs — 02 Lotissement Beau Séjour","Bab Ezzouar — أمام عيادة طبية مقابل مدرسة Hilal School","Chéraga — Place Ibn Badis رقم 03","Reghaïa — 822 مسكن LPP أميروش، عمارة A7 رقم 04","Alger Centre — 22 Rue Hocine Beladjel، Sacré-Cœur مقابل بنك BADR","بابا حسن — الطابق الأرضي لمبنى فردي، قطعة رقم 38، الحي العمراني","Baraki — طريق الأربعاء بين مسجد البشير الإبراهيمي ومفوضية الشرطة","برج البحري — حي قعلول، التجزئة التعاونية العقارية رقم 428 (بجانب روضة ابن باز)"],"Djelfa":["Djelfa — وسط المدينة مقابل الصندوق الوطني للتقاعد، حي بن جرمة","عين وسارة — حي محمد بوضياف، قسم 23، محلي رقم 30 بيسي"],"Jijel":["Jijel — Avenue Kaoula Mokhtar، حي إداري","الميلية — 5 جويلية، شارع الملعب، بجانب الحماية المدنية"],"Sétif":["سطيف — حي مسعودي الضواحي، 1014-614 مسكن (مقابل محطة ديدوش مراد)","العلمة — تاسهومي، بجانب نقل حمودة وفندق راتو، شارع طواهر الخير وبجانب نقل الإخلاص","Aïn Oulmene — مقابل CEM دوحيل عبد الحميد","قجال — المنطقة الصناعية، مقابل مجموعة سادي وبجانب مصلى التقوى"],"Saida":["Saïda — Cité Riad مقابل Maison de l’Environnement"],"Skikda":["Skikda — Rue du Chahid Meziane Salah، طريق بويعلي، عمارة قرزة","Azzaba — حي مفروش دحمان","Collo — Rue Zighoud Youcef مقابل ابتدائية مسيخ عمار وبجانب المحكمة"],"Sidi Bel Abbès":["Sidi Bel Abbès — Rue CPR مقابل مسجد الأنصار، حي بني عامر"],"Annaba":["عنابة — شارع جميلة، سان كلود (بجانب مسجد بدر)","البوني — تجزئة البوني 2، منطقة حضرية رقم 43، الطابق الأرضي، قسم 40، مجموعة ملكية 02"],"El Tarf":["الطارف — حي ريتين خميس، بجانب الأمن الحضري الأول"],"Guelma":["Guelma — Cité 19 Juin رقم 02 مقابل سوق البركة"],"Constantine":["Constantine — Avenue Kaddour Boumedous (Ciloc) بجانب المديرية الجهوية للخطوط الجوية الجزائرية","Zouaghi — Cité Tlemcen مقابل الدرك","Ali Mendjeli — مقابل Sarl Natura Algérie بين قاعتي البركة وميغا"],"Medea":["Médéa — Cité Ennasr قرب القطب الجامعي وسونلغاز","Ksar El Boukhari — المنطقة الحضرية الجديدة 246/03 محل 01"],"Mostaganem":["مستغانم — المشتلة مقابل الثلاجة بجانب مكتبة بن عليوة (حي عقيد عميروش، شارع نافوسي عثمان)","سيدي لخضر — شارع سي عبد الله، 01 نوفمبر أمام بريد سيدي لخضر — 0560264267"],"M'Sila":["M’Sila — Rue Ichbilia مقابل جامعة المسيلة","بوسعادة — حي البدر (ESTTIH) بجانب ملحقة البلدية — 0559270829"],"Mascara":["معسكر — 04 شارع بوعكاز علي، المنطقة 08 (بجانب قاعة أفراح بنت السولانة وكافتيريا علي؛ مقابل CNR)","المحمدية — شارع العربي بن مهيدي، بجانب وكالة باريقو"],"Ouargla":["Ouargla — سيدي عبد القادر خلف دار الشباب","Hassi Messaoud — حي 1850، الشارع الرئيسي للسوق الأسبوعي مقابل وكالة KIA القديمة"],"Oran":["وهران «مارافال» — مارافال مقابل فولا مودا بجانب سوبرات الكندي","بئر الجير — تعاونية دار الأمل، رقم 14، محلي 1 RC","غامبيتا — مقابل موقف الحافلات 51 و11 (مستوصف كاف-غاي)","أرزيو — مقابل الدائرة القديمة لأرزيو، شارع قدير الحبيب رقم 04","الصباح — تعاونية السلام، رقم D3، تجزئة 02، جزيرة 51 (جزء 02)، جزيرة 292، سيدي الشامي، حي الصباح، بجانب نهاية الترامواي"],"El Bayadh":["البيض — حي جولي فيو (المنظر الجميل)، بجانب مديرية توزيع الكهرباء والغاز — 0560481886"],"Illizi":["إليزي — وسط المدينة، حي بوشاش، شارع السمك — 0560892842"],"Bordj Bou Arreridj":["برج بوعريريج — شارع طابت صالح (أمام دار المالية)","رأس الوادي — عند تقاطع شارع صلاح باي وشارع موسى نمار، مقابل اللواء الجهوي للدرك الوطني — 0770172580"],"Boumerdes":["بومرداس — حي ميموزا مقابل المسبح الأولمبي","أولاد موسى — المنطقة الصناعية لأولاد موسى — 0560665086","برج منايل — شارع مدوي علي، محلي بومزر مقابل طبيب العيون الدكتور بن موسى حسين","دلس — الضاحية الشرقية لدلس، الطريق الوطني رقم 24، الطابق الأرضي مبنى B، محلي B05، معلم: وكالة عقارية ناجي — 0560018652"],"Tindouf":["تندوف — محل رقم 03، حي القصابي، قسم 14، مجموعة عقارية رقم 165 — 0560555395"],"Tissemsilt":["Tissemsilt — إقامة قايدي، موقف سيارات الأجرة القديم"],"El Oued":["الوادي — حي الرمال، بلدية الوادي (الطريق المؤدي إلى المحكمة)"],"Khenchela":["خنشلة — شارع الوزن الثقيل بجانب عيادة غسيل الكلى مساي"],"Souk Ahras":["Souk Ahras — مقابل إذاعة سوق أهراس ومخبر تحاليل Taghest"],"Tipaza":["تيبازة — حي محمد بوقرة، بجانب مدرسة خاصة DAYA School","القليعة — طريق الجزائر - القليعة"],"Mila":["Mila — برج الماء مقابل الحماية المدنية","شلغوم العيد — شارع 1 نوفمبر 1954 (فندق الرومل) — 0550523511","تاجنانت — شارع 1 نوفمبر مقابل متوسط محمد عبده — 0660968179","فرجيوة — شارع 1 نوفمبر مقابل تأمين GAM — 0770225873"],"Ain Defla":["عين الدفلى — سيتي نجم، مقابل مدخل المجموعة الجهوية للدرك الوطني، السرب","Khemis Miliana — حي أحمد بن عبد الله"],"Naama":["مشرية — الطريق الوطني رقم 06، بجانب فندق أمين ومقر اتصالات الجزائر"],"Ain Temouchent":["عين تموشنت — 22A حي الزيتون (مقابل موقف الولاية)"],"Ghardaia":["غرداية — الشارع الرئيسي حاج مسعود مقابل الفرع البلدي، حاج مسعود"],"Relizane":["غليزان — حي 31 مسكن مقابل العدالة، بجانب بنك سوسيتي جنرال الجزائر"],"Ouled Djellal":["أولاد جلال — تحت فندق ترانزيت بجانب الحماية المدنية — 0770749651"],"Béni Abbès":["بني عباس — بجانب الولاية، مقابل LAPIWI (المجلس الشعبي الولائي) — 0561906728"],"In Salah":["عين صالح — قرب مديرية الأشغال العمومية، مقابل مدخل رادار اتصالات الجزائر — 0560362803"],"Touggourt":["تقرت — حي سيدي عبد السلام (قرب بنك BEA) — 0770610683"],"Djanet":["جانت — وسط المدينة، تين خاتمة، بجانب طبيب الأسنان — 0563026716"],"M'Ghair":["المغير — وسط المدينة، بجانب مقهى جنيدي"],"El Meniaa":["المنيعة — شارع الوحدة الإفريقية (بجانب مخبزة بوسعيد)، على بعد 20 م من مسجد سعد بن أبي وقاص — 0770602445"],"Timimoun":["تيميمون — حي محجوب رقم الباب 16، مقابل الملعب وSAA — 0555518628"]};
+const NOEST_OFFICES = {"Adrar":["Adrar — وسط المدينة، بجانب محل حاج قريفة القديم، مقابل المركز التجاري، حي الحطابة"],"Chlef":["الشلف — شارع بحيرة الغابات (بجانب CNRC)","تنس — شارع شرشال مقابل المدرسة الابتدائية الإخوة مناد — 0560469155"],"Laghouat":["الأغواط — حي الوئام، مقابل الطفولة المسعفة (على بعد 100 م من المكتب القديم)","أفلو — شارع القعدة، بجانب مخبزة بلخير — 0550314898"],"Oum El Bouaghi":["أم البواقي — حي 176 مسكن LSP، مبنى 13","عين مليلة — حي الهناء، طريق ثانوية مساش — 0561848298","عين البيضاء — مقابل CNAS بجانب صيدلية بلعمري"],"Batna":["Batna — Cité Meddour Kchida مقابل عمارات 500 مسكن","Barika — حي شعباني مقابل الموثق بشير فرحاني بجانب اتصالات الجزائر","Batna — حي 1200 مسكن أولمي مقابل البريد الجديد ومحطة Petro Baraka"],"Bejaia":["Béjaïa — Rue des frères Tabet على بعد 20م من فندق Golden H مقابل الترقية الجديدة","Akbou — Rue Hibouche، عرافو مقابل حافلات جرجرة وAlliance Assurances","القصر — شارع حموي حميد، بلدية القصر، مقابل سمباك القصر"],"Biskra":["بسكرة — رقم 05، حي البستان (حي المجاهدين) مقابل مركز التكوين والتدخل السريع للشرطة — 0770608890"],"Bechar":["بشار — حي 622 مسكن البدر رقم 02، بلوك 52 (خلف راديو الساورة / مقابل الحماية المدنية)"],"Blida":["Blida — El Ramoul بجانب المحطة البرية الجديدة","Boufarik — إقامة بلقبير مقابل قاعة حفلات ليالينا","Mouzaïa — 54 مسكن LPP مقابل ثانوية قاسم نايت قاسم"],"Bouira":["Bouira — Villa Hamzaoui، عمار خوجة","Lakhdaria — الطريق الوطني رقم 05، مشروع 55 مسكن LSP، عمارة A، بجانب مستودع بيع سميد ماما"],"Tamanrasset":["Tamanrasset — حي مولاي عمر خلف مقر الدائرة وبجانب موقف مديرية الأشغال العمومية"],"Tebessa":["Tébessa — بجانب مفوضية الشرطة الثانية ومحل الأثاث REDEL","El Ouenza — حي EPLF بجانب مصلحة المياه","Bir El Ater — الطريق الوطني رقم 16 مقابل محطة نفطال"],"Tlemcen":["Tlemcen — Les Dhalias، 426 الكيفان","Maghnia — أولاد بن صابر بجانب مطعم Rais","Mansourah — إقامة القدس"],"Tiaret":["Tiaret — Cité 180 logements CNT، محل 01 رقم 63","Frenda — Cité 60 logements D121 GP 82","Ksar Chellala — حي حسين آيت أحمد، رقم 17 بجانب مسجد الإمام علي"],"Tizi Ouzou":["Tizi Ouzou — Cité 450 logements، المدينة الجديدة مقابل قاعة حفلات Lilya","Azazga — الطريق الوطني رقم 12، تادارت","Draâ Ben Khedda — تعاونية الورود مقابل ADE وANEM"],"Alger":["Zéralda — Cité 62 local LPP، عمارة 5C","بئر خادم — بئر خادم المالحة — 0560004746","Hussein Dey — Rue Layache Yahia رقم 06 مقابل مسجد Brossette","الدرارية — بوجمعة تميم الأنصار — 0560521522","Bir Mourad Raïs — 02 Lotissement Beau Séjour","Bab Ezzouar — أمام عيادة طبية مقابل مدرسة Hilal School","Chéraga — Place Ibn Badis رقم 03","Reghaïa — 822 مسكن LPP أميروش، عمارة A7 رقم 04","Alger Centre — 22 Rue Hocine Beladjel، Sacré-Cœur مقابل بنك BADR","بابا حسن — الطابق الأرضي لمبنى فردي، قطعة رقم 38، الحي العمراني","Baraki — طريق الأربعاء بين مسجد البشير الإبراهيمي ومفوضية الشرطة","برج البحري — حي قعلول، التجزئة التعاونية العقارية رقم 428 (بجانب روضة ابن باز)"],"Djelfa":["Djelfa — وسط المدينة مقابل الصندوق الوطني للتقاعد، حي بن جرمة","عين وسارة — حي محمد بوضياف، قسم 23، محلي رقم 30 بيسي"],"Jijel":["Jijel — Avenue Kaoula Mokhtar، حي إداري","الميلية — 5 جويلية، شارع الملعب، بجانب الحماية المدنية"],"Sétif":["سطيف — حي مسعودي الضواحي، 1014-614 مسكن (مقابل محطة ديدوش مراد)","العلمة — تاسهومي، بجانب نقل حمودة وفندق راتو، شارع طواهر الخير وبجانب نقل الإخلاص","Aïn Oulmene — مقابل CEM دوحيل عبد الحميد","قجال — المنطقة الصناعية، مقابل مجموعة سادي وبجانب مصلى التقوى"],"Saida":["Saïda — Cité Riad مقابل Maison de l’Environnement"],"Skikda":["Skikda — Rue du Chahid Meziane Salah، طريق بويعلي، عمارة قرزة","Azzaba — حي مفروش دحمان","Collo — Rue Zighoud Youcef مقابل ابتدائية مسيخ عمار وبجانب المحكمة"],"Sidi Bel Abbès":["Sidi Bel Abbès — Rue CPR مقابل مسجد الأنصار، حي بني عامر"],"Annaba":["عنابة — شارع جميلة، سان كلود (بجانب مسجد بدر)","البوني — تجزئة البوني 2، منطقة حضرية رقم 43، الطابق الأرضي، قسم 40، مجموعة ملكية 02"],"El Tarf":["الطارف — حي ريتين خميس، بجانب الأمن الحضري الأول"],"Guelma":["Guelma — Cité 19 Juin رقم 02 مقابل سوق البركة"],"Constantine":["Constantine — Avenue Kaddour Boumedous (Ciloc) بجانب المديرية الجهوية للخطوط الجوية الجزائرية","Zouaghi — Cité Tlemcen مقابل الدرك","Ali Mendjeli — مقابل Sarl Natura Algérie بين قاعتي البركة وميغا"],"Medea":["Médéa — Cité Ennasr قرب القطب الجامعي وسونلغاز","Ksar El Boukhari — المنطقة الحضرية الجديدة 246/03 محل 01"],"Mostaganem":["مستغانم — المشتلة مقابل الثلاجة بجانب مكتبة بن عليوة (حي عقيد عميروش، شارع نافوسي عثمان)","سيدي لخضر — شارع سي عبد الله، 01 نوفمبر أمام بريد سيدي لخضر — 0560264267"],"M'Sila":["M’Sila — Rue Ichbilia مقابل جامعة المسيلة","بوسعادة — حي البدر (ESTTIH) بجانب ملحقة البلدية — 0559270829"],"Mascara":["معسكر — 04 شارع بوعكاز علي، المنطقة 08 (بجانب قاعة أفراح بنت السولانة وكافتيريا علي؛ مقابل CNR)","المحمدية — شارع العربي بن مهيدي، بجانب وكالة باريقو"],"Ouargla":["Ouargla — سيدي عبد القادر خلف دار الشباب","Hassi Messaoud — حي 1850، الشارع الرئيسي للسوق الأسبوعي مقابل وكالة KIA القديمة"],"Oran":["وهران «مارافال» — مارافال مقابل فولا مودا بجانب سوبرات الكندي","بئر الجير — تعاونية دار الأمل، رقم 14، محلي 1 RC","غامبيتا — مقابل موقف الحافلات 51 و11 (مستوصف كاف-غاي)","أرزيو — مقابل الدائرة القديمة لأرزيو، شارع قدير الحبيب رقم 04","الصباح — تعاونية السلام، رقم D3، تجزئة 02، جزيرة 51 (جزء 02)، جزيرة 292، سيدي الشامي، حي الصباح، بجانب نهاية الترامواي"],"El Bayadh":["البيض — حي جولي فيو (المنظر الجميل)، بجانب مديرية توزيع الكهرباء والغاز — 0560481886"],"Illizi":["إليزي — وسط المدينة، حي بوشاش، شارع السمك — 0560892842"],"Bordj Bou Arreridj":["برج بوعريريج — شارع طابت صالح (أمام دار المالية)","رأس الوادي — عند تقاطع شارع صلاح باي وشارع موسى نمار، مقابل اللواء الجهوي للدرك الوطني — 0770172580"],"Boumerdes":["بومرداس — حي ميموزا مقابل المسبح الأولمبي","أولاد موسى — المنطقة الصناعية لأولاد موسى — 0560665086","برج منايل — شارع مدوي علي، محلي بومزر مقابل طبيب العيون الدكتور بن موسى حسين","دلس — الضاحية الشرقية لدلس، الطريق الوطني رقم 24، الطابق الأرضي مبنى B، محلي B05، معلم: وكالة عقارية ناجي — 0560018652"],"Tindouf":["تندوف — محل رقم 03، حي القصابي، قسم 14، مجموعة عقارية رقم 165 — 0560555395"],"Tissemsilt":["Tissemsilt — إقامة قايدي، موقف سيارات الأجرة القديم"],"El Oued":["الوادي — حي الرمال، بلدية الوادي (الطريق المؤدي إلى المحكمة)"],"Khenchela":["خنشلة — شارع الوزن الثقيل بجانب عيادة غسيل الكلى مساي"],"Souk Ahras":["Souk Ahras — مقابل إذاعة سوق أهراس ومخبر تحاليل Taghest"],"Tipaza":["تيبازة — حي محمد بوقرة، بجانب مدرسة خاصة DAYA School","القليعة — طريق الجزائر - القليعة"],"Mila":["Mila — برج الماء مقابل الحماية المدنية","شلغوم العيد — شارع 1 نوفمبر 1954 (فندق الرومل) — 0550523511","تاجنانت — شارع 1 نوفمبر مقابل متوسط محمد عبده — 0660968179","فرجيوة — شارع 1 نوفمبر مقابل تأمين GAM — 0770225873"],"Ain Defla":["عين الدفلى — سيتي نجم، مقابل مدخل المجموعة الجهوية للدرك الوطني، السرب","Khemis Miliana — حي أحمد بن عبد الله"],"Naama":["مشرية — الطريق الوطني رقم 06، بجانب فندق أمين ومقر اتصالات الجزائر"],"Ain Temouchent":["عين تموشنت — 22A حي الزيتون (مقابل موقف الولاية)"],"Ghardaia":["غرداية — الشارع الرئيسي حاج مسعود مقابل الفرع البلدي، حاج مسعود"],"Relizane":["غليزان — حي 31 مسكن مقابل العدالة، بجانب بنك سوسيتي جنرال الجزائر"],"Ouled Djellal":["أولاد جلال — تحت فندق ترانزيت بجانب الحماية المدنية — 0770749651"],"Béni Abbès":["بني عباس — بجانب الولاية، مقابل LAPIWI (المجلس الشعبي الولائي) — 0561906728"],"In Salah":["عين صالح — قرب مديرية الأشغال العمومية، مقابل مدخل رادار اتصالات الجزائر — 0560362803"],"Touggourt":["تقرت — حي سيدي عبد السلام (قرب بنك BEA) — 0770610683"],"Djanet":["جانت — وسط المدينة، تين خاتمة، بجانب طبيب الأسنان — 0563026716"],"M'Ghair":["المغير — وسط المدينة، بجانب مقهى جنيدي"],"El Meniaa":["المنيعة — شارع الوحدة الإفريقية (بجانب مخبزة بوسعيد)، على بعد 20 م من مسجد سعد بن أبي وقاص — 0770602445"],"Timimoun":["تيميمون — حي محجوب رقم الباب 16، مقابل الملعب وSAA — 0555518628"]};
 
 
 function normalizeOfficeProvinceName(name){
@@ -1655,10 +1655,10 @@ function normalizeOfficeProvinceName(name){
   const aliases={"Meniaa":"El Meniaa","Tamanراست":"Tamanrasset"};
   return aliases[n]||n;
 }
-function updateWorldExpressOffices(){
-  const wrap=document.getElementById("worldExpressOfficeWrap");
-  const select=document.getElementById("worldExpressOffice");
-  const hint=document.getElementById("worldExpressOfficeHint");
+function updateNoestOffices(){
+  const wrap=document.getElementById("noestOfficeWrap");
+  const select=document.getElementById("noestOffice");
+  const hint=document.getElementById("noestOfficeHint");
   if(!wrap || !select) return;
   const isOffice=deliveryType.value==="office";
   const homeAddressWrap=document.getElementById("homeAddressWrap");
@@ -1673,12 +1673,12 @@ function updateWorldExpressOffices(){
   select.required=isOffice;
   if(!isOffice){select.value="";select.disabled=true;return;}
   const province=normalizeOfficeProvinceName(deliveryProvince.value || "");
-  const list=WORLD_EXPRESS_OFFICES[province]||[];
+  const list=NOEST_OFFICES[province]||[];
   select.innerHTML="";
   if(!province){
     select.disabled=true;
     select.innerHTML='<option value="">اختاري الولاية أولاً</option>';
-    hint.textContent="اختاري الولاية، وستظهر مكاتب World Express الموجودة فيها فقط.";
+    hint.textContent="اختاري الولاية، وستظهر مكاتب Noest الموجودة فيها فقط.";
     wrap.classList.remove("no-offices");
     return;
   }
@@ -1691,7 +1691,7 @@ function updateWorldExpressOffices(){
   }
   select.disabled=false;select.required=true;
   const first=document.createElement("option");
-  first.value="";first.textContent="اختاري مكتب World Express";
+  first.value="";first.textContent="اختاري مكتب Noest";
   select.appendChild(first);
   list.forEach(x=>{const option=document.createElement("option");option.value=x;option.textContent=x;select.appendChild(option);});
   hint.textContent=list.length+" مكتب متاح في الولاية المختارة. اختاري العنوان المطابق للمكتب الفعلي.";
@@ -1701,14 +1701,14 @@ function updateWorldExpressOffices(){
 const _oldUpdateDeliveryPrice=updateDeliveryPrice;
 updateDeliveryPrice=function(){
   _oldUpdateDeliveryPrice();
-  updateWorldExpressOffices();
+  updateNoestOffices();
 };
-deliveryProvince.addEventListener("change",updateWorldExpressOffices);
-deliveryType.addEventListener("change",updateWorldExpressOffices);
+deliveryProvince.addEventListener("change",updateNoestOffices);
+deliveryType.addEventListener("change",updateNoestOffices);
 fillDeliveryProvinces();
 deliveryProvince.addEventListener("change",updateDeliveryPrice);
 deliveryType.addEventListener("change",updateDeliveryPrice);
-updateWorldExpressOffices();
+updateNoestOffices();
 function openCart(){renderCart();modal.classList.add("open");modal.setAttribute("aria-hidden","false")}
 cartOpen.addEventListener("click",openCart);
 modalX.addEventListener("click",()=>{modal.classList.remove("open");modal.setAttribute("aria-hidden","true")});
@@ -2322,8 +2322,8 @@ async function submitOrderBoth(){
     const fee=rates?Number(rates[deliveryType.value==="home"?0:1]||0):0;
     const total=productsTotal+fee;
     const provinceText=deliveryProvince.options[deliveryProvince.selectedIndex]?.text||"";
-    const office=deliveryType.value==="office"?(document.getElementById("worldExpressOffice")?.value||""):"";
-    if(deliveryType.value==="office" && !office) throw new Error("اختاري مكتب World Express من العناوين الظاهرة قبل إرسال الطلب.");
+    const office=deliveryType.value==="office"?(document.getElementById("noestOffice")?.value||""):"";
+    if(deliveryType.value==="office" && !office) throw new Error("اختاري مكتب Noest من العناوين الظاهرة قبل إرسال الطلب.");
     const officeLocality=office ? office.split(" — ")[0].trim() : "";
     const orderCommune=deliveryType.value==="office" ? officeLocality : document.getElementById("commune").value.trim();
     const items=cart.map(x=>({
@@ -2377,7 +2377,7 @@ async function submitOrderBoth(){
       console.warn("Formspree error:",mailErr);
     }
     alert("تم إرسال طلبك بنجاح 🌸");
-    cart=[]; saveCart(); renderCart(); updateCartCount(); form.reset(); updateDeliveryPrice(); updateWorldExpressOffices();
+    cart=[]; saveCart(); renderCart(); updateCartCount(); form.reset(); updateDeliveryPrice(); updateNoestOffices();
   }catch(e){
     console.error(e);
     alert(e.message||"تعذر إرسال الطلب.");
