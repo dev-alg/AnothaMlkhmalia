@@ -1983,7 +1983,46 @@ function startEdit(row){
   productError.textContent="";
   productForm.scrollIntoView({behavior:"smooth",block:"start"});
 }
-async function uploadImages(files){const paths=[];for(const file of files){const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"jpg");const path=(crypto.randomUUID ? crypto.randomUUID() : (Date.now()+"-"+Math.random().toString(36).slice(2)))+"."+ext;const r=await fetch(SUPABASE_URL+"/storage/v1/object/"+BUCKET+"/"+path,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+accessToken,"Content-Type":file.type||"application/octet-stream","x-upsert":"false"},body:file});if(!r.ok)throw new Error(await r.text());paths.push(path);}return paths;}
+async function compressImage(file){
+  const MAX=1400;
+  let img;
+  try{ img=await createImageBitmap(file); }
+  catch(e){
+    img=await new Promise((res,rej)=>{
+      const u=URL.createObjectURL(file), im=new Image();
+      im.onload=()=>{URL.revokeObjectURL(u);res(im);};
+      im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("تعذر قراءة الصورة "+file.name+" — اختاريها من المعرض أو من ملفات الجهاز."));};
+      im.src=u;
+    });
+  }
+  const w0=img.width||img.naturalWidth, h0=img.height||img.naturalHeight;
+  const k=Math.min(1,MAX/Math.max(w0,h0));
+  const c=document.createElement("canvas");
+  c.width=Math.max(1,Math.round(w0*k)); c.height=Math.max(1,Math.round(h0*k));
+  const ctx=c.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,c.width,c.height); ctx.drawImage(img,0,0,c.width,c.height);
+  if(img.close) img.close();
+  const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",0.85));
+  if(!blob) throw new Error("تعذر ضغط الصورة "+file.name);
+  return blob;
+}
+async function uploadImages(files){
+  const paths=[];
+  for(const file of files){
+    const blob=await compressImage(file);
+    const path=(crypto.randomUUID ? crypto.randomUUID() : (Date.now()+"-"+Math.random().toString(36).slice(2)))+".jpg";
+    let r=null, lastErr=null;
+    for(let attempt=0;attempt<3&&!r;attempt++){
+      try{
+        const resp=await fetch(SUPABASE_URL+"/storage/v1/object/"+BUCKET+"/"+path,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+accessToken,"Content-Type":"image/jpeg","x-upsert":"false"},body:blob});
+        r=resp;
+      }catch(e){ lastErr=e; await new Promise(t=>setTimeout(t,1200)); }
+    }
+    if(!r) throw new Error("تعذر الاتصال بالخادم أثناء رفع الصورة. تأكدي من الإنترنت ثم أعيدي المحاولة. ("+(lastErr&&lastErr.message||"")+")");
+    if(!r.ok) throw new Error(await r.text());
+    paths.push(path);
+  }
+  return paths;
+}
 async function removeImages(paths){for(const path of (paths||[])){await fetch(SUPABASE_URL+"/storage/v1/object/"+BUCKET,{method:"DELETE",headers:apiHeaders(),body:JSON.stringify({prefixes:[path]})});}}
 async function saveProductStockStatus(productId, outOfStock){
   if(!productId) return;
