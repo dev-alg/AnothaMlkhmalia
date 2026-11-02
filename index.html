@@ -1449,9 +1449,9 @@ body{background:#fdf8f6!important;color:var(--lux-deep)}
           </section>
 
           <section class="admin-view" data-admin-view-panel="orders">
-            <div class="admin-dashboard-title"><div><h2>جدول الطلبات</h2><p>الطلبات مجمعة حسب الولاية، وكل ولاية داخل جدول مستقل.</p></div></div>
+            <div class="admin-dashboard-title"><div><h2>جدول الطلبات</h2><p>تظهر ولاية الزبونة ورقمها مع البلدية في تفاصيل كل طلب.</p></div></div>
             <div class="admin-orders-toolbar">
-              <input id="adminOrderSearch" placeholder="بحث بالاسم أو الهاتف أو البلدية...">
+              <input id="adminOrderSearch" placeholder="بحث بالاسم أو الهاتف أو الولاية أو البلدية...">
               <select id="adminOrderStatusFilter"><option value="">كل الحالات</option><option value="new">جديد</option><option value="confirmed">مؤكد</option><option value="shipped">تم الشحن</option><option value="delivered">تم التسليم</option><option value="cancelled">ملغى</option></select>
               <button class="admin-secondary" id="adminReloadOrders" type="button">تحديث الطلبات</button>
               <button class="admin-danger-btn" id="adminOpenDeleteOrders" type="button">حذف الطلبات</button>
@@ -2609,12 +2609,12 @@ function renderAdminOrders(){
     group.innerHTML='<div class="admin-orders-group-head"><strong>'+(day===dayKey(new Date())?"اليوم — ":"")+esc(name)+'</strong><span>'+rows.length+' طلب</span></div>';
     const wrap=document.createElement("div");wrap.style.overflowX="auto";
     const table=document.createElement("table");table.className="admin-orders-table";
-    table.innerHTML='<thead><tr><th>#</th><th>التاريخ</th><th>الزبونة</th><th>الهاتف</th><th>البلدية</th><th>التوصيل</th><th>المنتجات</th><th>قيمة المنتجات</th><th>التوصيل</th><th>الإجمالي</th><th>الحالة</th></tr></thead>';
+    table.innerHTML='<thead><tr><th>#</th><th>التاريخ</th><th>الزبونة</th><th>الهاتف</th><th>الولاية</th><th>البلدية</th><th>التوصيل</th><th>المنتجات</th><th>قيمة المنتجات</th><th>التوصيل</th><th>الإجمالي</th><th>الحالة</th></tr></thead>';
     const tbody=document.createElement("tbody");
     rows.forEach((o,i)=>{
       const tr=document.createElement("tr");
       const products=o.items_text||"—";
-      tr.innerHTML='<td>'+(i+1)+'</td><td>'+esc(new Date(o.created_at).toLocaleString("ar-DZ"))+'</td><td><b>'+esc(o.customer_name)+'</b></td><td>'+esc(o.phone)+'</td><td>'+esc(o.commune||"—")+'</td><td>'+esc(o.delivery_type==="office"?"مكتب: "+(o.office_name||"—"):"منزل")+'</td><td class="admin-order-products">'+esc(products)+'</td><td>'+money(o.products_total)+'</td><td>'+money(o.delivery_price)+'</td><td><b>'+money(o.grand_total)+'</b></td><td><select class="admin-status-select"><option value="new">جديد</option><option value="confirmed">مؤكد</option><option value="shipped">تم الشحن</option><option value="delivered">تم التسليم</option><option value="cancelled">ملغى</option></select></td>';
+      tr.innerHTML='<td>'+(i+1)+'</td><td>'+esc(new Date(o.created_at).toLocaleString("ar-DZ"))+'</td><td><b>'+esc(o.customer_name)+'</b></td><td>'+esc(o.phone)+'</td><td><b>'+esc(o.wilaya_name||"غير محددة")+'</b>'+(o.wilaya_number?' <small>#'+esc(o.wilaya_number)+'</small>':'')+'</td><td>'+esc(o.commune||"—")+'</td><td>'+esc(o.delivery_type==="office"?"مكتب: "+(o.office_name||"—"):"منزل")+'</td><td class="admin-order-products">'+esc(products)+'</td><td>'+money(o.products_total)+'</td><td>'+money(o.delivery_price)+'</td><td><b>'+money(o.grand_total)+'</b></td><td><select class="admin-status-select"><option value="new">جديد</option><option value="confirmed">مؤكد</option><option value="shipped">تم الشحن</option><option value="delivered">تم التسليم</option><option value="cancelled">ملغى</option></select></td>';
       const sel=tr.querySelector("select");sel.value=o.status||"new";
       sel.onchange=()=>updateOrderStatus(o.id,sel.value);
       tbody.appendChild(tr);
