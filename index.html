@@ -869,7 +869,7 @@ body::after {
 .admin-orders-table th{background:#fffafa;color:#806c68;font-size:12px;white-space:nowrap}
 .admin-orders-table tr:last-child td{border-bottom:0}
 .admin-orders-table tr:hover td{background:#fff8fa}
-.admin-order-products{white-space:pre-line;line-height:1.55}
+.admin-order-products{line-height:1.55;min-width:190px}.ord-item{display:flex;align-items:center;gap:8px;padding:4px 0}.ord-item+.ord-item{border-top:1px dashed #ead8dc}.ord-thumb{width:42px;height:42px;flex:0 0 42px;object-fit:cover;border-radius:9px;border:1px solid #ead8dc;background:#f5e9ed}.ord-thumb-empty{display:grid;place-items:center;font-size:18px;color:#B76E79}.ord-name{font-weight:700;font-size:13px;color:#6B3A42}.ord-qty{display:inline-block;margin-right:4px;background:#F5E1E4;color:#6B3A42;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:800;white-space:nowrap}
 .admin-status{border:1px solid #dcc0c4;border-radius:999px;padding:5px 9px;background:#FDF8F5;color:#6B3A42;font-weight:800}
 .admin-status-select{border:1px solid #dcc0c4;border-radius:9px;background:#fff;color:#6B3A42;padding:7px}
 .admin-product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:13px}
@@ -2503,6 +2503,56 @@ async function deleteAllOrders(){
   }
 }
 
+async function attachOrderItems(orders){
+  const ids=orders.map(o=>o.id).filter(v=>v!==null&&v!==undefined&&v!=="");
+  if(!ids.length) return;
+  const allItems=[];
+  // تقسيم الطلبات إلى دفعات حتى لا يصبح الرابط طويلاً جداً ويفشل الطلب.
+  for(let i=0;i<ids.length;i+=40){
+    const chunk=ids.slice(i,i+40);
+    try{
+      const ir=await fetch(ITEMS_URL+"?select=*&order_id=in.("+chunk.join(",")+")",{headers:currentSessionHeaders()});
+      const d=await ir.json();
+      if(ir.ok&&Array.isArray(d)) allItems.push(...d); else console.warn("order_items:",d);
+    }catch(err){console.warn("تعذر تحميل منتجات الطلبات:",err);}
+  }
+  // صور المنتجات: من المنتجات المحمّلة، وما كان ناقصاً يُجلب من جدول products.
+  const imgById={}, imgByName={};
+  const remember=p=>{
+    const paths=Array.isArray(p.image_paths)&&p.image_paths.length?p.image_paths:(p.image_url?[p.image_url]:[]);
+    const url=paths[0]?imageUrl(paths[0]):"";
+    if(url){ if(p.id!==undefined&&p.id!==null) imgById[String(p.id)]=url; if(p.name) imgByName[p.name]=url; }
+  };
+  try{ (typeof PRODUCTS!=="undefined"?PRODUCTS:[]).forEach(p=>{ if(p.images&&p.images[0]){imgById[String(p.id)]=p.images[0]; imgByName[p.name]=p.images[0];} }); }catch(_){}
+  const missing=[...new Set(allItems.map(x=>x.product_id).filter(v=>v!==null&&v!==undefined&&v!==""&&!imgById[String(v)]).map(String))];
+  for(let i=0;i<missing.length;i+=40){
+    try{
+      const pr=await fetch(TABLE_URL+"?select=id,name,image_paths,image_url&id=in.("+missing.slice(i,i+40).join(",")+")",{headers:currentSessionHeaders()});
+      const pd=await pr.json();
+      if(pr.ok&&Array.isArray(pd)) pd.forEach(remember);
+    }catch(err){console.warn("تعذر تحميل صور المنتجات:",err);}
+  }
+  const byOrder={};
+  allItems.forEach(it=>{ const k=String(it.order_id||""); if(k)(byOrder[k] ||= []).push(it); });
+  orders.forEach(o=>{
+    const list=(byOrder[String(o.id)]||[]).map(it=>({
+      name:String(it.product_name||"منتج بدون اسم"),
+      qty:Math.max(1,Number(it.quantity)||1),
+      image:imgById[String(it.product_id)]||imgByName[it.product_name]||""
+    }));
+    o.items=list;
+    o.items_text=list.length?list.map(x=>x.name+" × "+x.qty).join("\n"):(o.items_text||"—");
+  });
+}
+function orderItemsHtml(o){
+  if(!o.items||!o.items.length) return esc(o.items_text||"—");
+  return o.items.map(x=>
+    '<div class="ord-item">'+
+    (x.image?'<img class="ord-thumb" loading="lazy" src="'+esc(x.image)+'" alt="'+esc(x.name)+'">':'<span class="ord-thumb ord-thumb-empty">🌸</span>')+
+    '<div><div class="ord-name">'+esc(x.name)+'</div><span class="ord-qty">× '+esc(x.qty)+'</span></div></div>'
+  ).join("");
+}
+
 async function loadAdminOrders(){
   const box=document.getElementById("adminOrdersGroups");
   if(!box || !accessToken) return;
@@ -2513,39 +2563,8 @@ async function loadAdminOrders(){
     if(!r.ok) throw new Error(data?.message||JSON.stringify(data));
     ADMIN_ORDERS=Array.isArray(data)?data:[];
 
-    // ربط كل طلب بمنتجاته الفعلية من جدول order_items حتى تظهر أسماء المنتجات في لوحة الطلبات.
-    if(ADMIN_ORDERS.length){
-      const orderIds=ADMIN_ORDERS.map(o=>o.id).filter(Boolean);
-      if(orderIds.length){
-        const itemsUrl=ITEMS_URL+"?select=order_id,product_name,quantity&order_id=in.("+orderIds.join(",")+")";
-        try{
-          const ir=await fetch(itemsUrl,{headers:currentSessionHeaders()});
-          const itemData=await ir.json();
-          if(ir.ok && Array.isArray(itemData)){
-            const byOrder={};
-            itemData.forEach(item=>{
-              const id=String(item.order_id||"");
-              if(!id) return;
-              (byOrder[id] ||= []).push(item);
-            });
-            ADMIN_ORDERS.forEach(o=>{
-              const items=byOrder[String(o.id)]||[];
-              if(items.length){
-                o.items_text=items.map(item=>{
-                  const name=String(item.product_name||"منتج بدون اسم");
-                  const qty=Math.max(1,Number(item.quantity)||1);
-                  return name+" × "+qty;
-                }).join("\n");
-              }else if(!o.items_text){
-                o.items_text="—";
-              }
-            });
-          }
-        }catch(itemsError){
-          console.warn("تعذر تحميل منتجات الطلبات:",itemsError);
-        }
-      }
-    }
+    // ربط كل طلب بمنتجاته (الاسم + صورة صغيرة) من order_items و products.
+    await attachOrderItems(ADMIN_ORDERS);
 
     renderAdminOrders();
     updateDashboardStats();
@@ -2592,7 +2611,7 @@ function renderAdminOrders(){
   const st=document.getElementById("adminOrderStatusFilter")?.value||"";
   updateDateChips();
   const filtered=ADMIN_ORDERS.filter(o=>{
-    const hay=[o.customer_name,o.phone,o.wilaya_name,o.commune,o.office_name].join(" ").toLowerCase();
+    const hay=[o.customer_name,o.phone,o.wilaya_name,o.commune,o.office_name,o.items_text].join(" ").toLowerCase();
     return (!q||hay.includes(q))&&(!st||o.status===st)&&inDateRange(o);
   });
   if(!filtered.length){box.innerHTML='<div class="admin-empty">'+(DATE_RANGE==="today"?"لا توجد طلبات اليوم.":"لا توجد طلبات مطابقة.")+'</div>';return;}
@@ -2614,7 +2633,7 @@ function renderAdminOrders(){
     rows.forEach((o,i)=>{
       const tr=document.createElement("tr");
       const products=o.items_text||"—";
-      tr.innerHTML='<td>'+(i+1)+'</td><td>'+esc(new Date(o.created_at).toLocaleString("ar-DZ"))+'</td><td><b>'+esc(o.customer_name)+'</b></td><td>'+esc(o.phone)+'</td><td><b>'+esc(o.wilaya_name||"غير محددة")+'</b>'+(o.wilaya_number?' <small>#'+esc(o.wilaya_number)+'</small>':'')+'</td><td>'+esc(o.commune||"—")+'</td><td>'+esc(o.delivery_type==="office"?"مكتب: "+(o.office_name||"—"):"منزل")+'</td><td class="admin-order-products">'+esc(products)+'</td><td>'+money(o.products_total)+'</td><td>'+money(o.delivery_price)+'</td><td><b>'+money(o.grand_total)+'</b></td><td><select class="admin-status-select"><option value="new">جديد</option><option value="confirmed">مؤكد</option><option value="shipped">تم الشحن</option><option value="delivered">تم التسليم</option><option value="cancelled">ملغى</option></select></td>';
+      tr.innerHTML='<td>'+(i+1)+'</td><td>'+esc(new Date(o.created_at).toLocaleString("ar-DZ"))+'</td><td><b>'+esc(o.customer_name)+'</b></td><td>'+esc(o.phone)+'</td><td><b>'+esc(o.wilaya_name||"غير محددة")+'</b>'+(o.wilaya_number?' <small>#'+esc(o.wilaya_number)+'</small>':'')+'</td><td>'+esc(o.commune||"—")+'</td><td>'+esc(o.delivery_type==="office"?"مكتب: "+(o.office_name||"—"):"منزل")+'</td><td class="admin-order-products">'+orderItemsHtml(o)+'</td><td>'+money(o.products_total)+'</td><td>'+money(o.delivery_price)+'</td><td><b>'+money(o.grand_total)+'</b></td><td><select class="admin-status-select"><option value="new">جديد</option><option value="confirmed">مؤكد</option><option value="shipped">تم الشحن</option><option value="delivered">تم التسليم</option><option value="cancelled">ملغى</option></select></td>';
       const sel=tr.querySelector("select");sel.value=o.status||"new";
       sel.onchange=()=>updateOrderStatus(o.id,sel.value);
       tbody.appendChild(tr);
